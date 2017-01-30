@@ -1,7 +1,7 @@
 # esp_slip_router
 A SLIP to WiFi router
 
-This is a proof of concept implementation of a SLIP (RFC1055) router on the esp8266. It can be used as simple (and slow) network interface to get WiFi connectivity. The esp also acts as STA and transparently forwards any IP traffic through it. As it uses NAT no routing entries are required on the network side. 
+This is a proof of concept implementation of a SLIP (Serial Line IP - RFC1055) router on the esp8266. It can be used as simple (and slow) network interface to get WiFi connectivity. The esp also acts as STA and transparently forwards any IP traffic through it. As it uses NAT no routing entries are required on the network side. 
 
 # Usage
 The Firmware starts with the following default configuration:
@@ -21,7 +21,7 @@ telnet 192.168.240.1 7777
 ```
 should give you terminal access to the esp as router.
 
-To get full internet access you will nees aditionally a route:
+To get full internet access you will need aditionally a route:
 ```
 sudo sudo route add default gw 192.168.240.1
 ```
