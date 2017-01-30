@@ -25,9 +25,9 @@ To get full internet access you will need aditionally a route:
 ```
 sudo sudo route add default gw 192.168.240.1
 ```
-and a DNS server - add an appropriate entry (e.g. the one that "show" tells you on the router console) in /etc/resolv.conf, eg. by:
+and a DNS server - add an appropriate entry (e.g. the one that "show" tells you on the router console) in /etc/resolv.conf, eg. by (as root):
 ```
-sudo echo "nameserver 192.168.178.1" > /etc/resolv.conv
+echo "nameserver 192.168.178.1" > /etc/resolv.conf
 ```
 A script may help to automize this process.
 
