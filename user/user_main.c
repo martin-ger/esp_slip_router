@@ -486,6 +486,9 @@ softuart_write_char(char c)
 }
 
 LOCAL void
+void_write_char(char c) {}
+
+LOCAL void
 write_to_pbuf(char c)
 {
     slipif_received_byte(&sl_netif, c);
@@ -518,7 +521,9 @@ char int_no = 2;
 
     os_printf("\r\n\r\nSLIP Interface V0.9 starting\r\n");
 #else
+    // all system output to /dev/null
     system_set_os_print(0);
+    os_install_putc1(void_write_char);
 #endif /* DEBUG_SOFTUART */
 
     // Load WiFi-config
