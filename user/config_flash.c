@@ -20,6 +20,7 @@ void config_load_default(sysconfig_p config)
     config->locked			= 0;
     IP4_ADDR(&config->ip_addr, 192, 168, 240, 1);
     config->clock_speed			= 80;
+    config->bit_rate                    = 115200;
 }
 
 int config_load(int version, sysconfig_p config)

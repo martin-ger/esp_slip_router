@@ -37,6 +37,8 @@ bool connected;
 
 uint8_t remote_console_disconnect;
 
+uint32_t g_bit_rate;
+
 // Similar to strtok
 int parse_str_into_tokens(char *str, char **tokens, int max_tokens)
 {
@@ -152,7 +154,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "help") == 0)
     {
-        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|speed] <val>\r\n|quit|save|reset [factory]|lock|unlock <password>");
+        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|speed|bitrate] <val>\r\n|quit|save|reset [factory]|lock|unlock <password>");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 #ifdef ALLOW_SCANNING
         os_sprintf(response, "|scan");
@@ -180,6 +182,8 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "Clock speed: %d\r\n", config.clock_speed);
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	os_sprintf(response, "Serial bit rate: %d\r\n", config.bit_rate);
+	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	goto command_handled;
       }
     }
@@ -309,6 +313,14 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
                 config.ip_addr.addr = ipaddr_addr(tokens[2]);
                 os_sprintf(response, "IP address set to %d.%d.%d.%d/24\r\n", 
 			IP2STR(&config.ip_addr));
+                ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"bitrate") == 0)
+            {
+                config.bit_rate = atoi(tokens[2]);
+                os_sprintf(response, "Bitrate will be %d after save & reset.\r\n", config.bit_rate);
                 ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
@@ -529,6 +541,7 @@ char int_no = 2;
     // Load WiFi-config
     config_load(0, &config);
 
+    g_bit_rate = config.bit_rate;
     remote_console_disconnect = 0;
 
     // Now start the STA-Mode

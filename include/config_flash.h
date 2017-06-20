@@ -29,6 +29,7 @@ typedef struct
     ip_addr_t	ip_addr;	// Address of the slip interface
 
     uint16_t	clock_speed;	// Freq of the CPU
+    uint32_t    bit_rate;       // Bit rate of serial link
 } sysconfig_t, *sysconfig_p;
 
 int config_load(int version, sysconfig_p config);

@@ -39,6 +39,7 @@ The console understands the following command:
 - set ssid|pasword [value]: changes the named config parameter
 - set addr [ip-addr]: sets the IP address of the SLIP interface
 - set speed [80|160]: sets the CPU clock frequency
+- set bitrate [bitrate]: sets the serial bitrate to a new value
 - save: saves the current parameters to flash
 - quit: terminates a remote session
 - reset [factory]: resets the esp and applies the config, optionally resets WiFi params to default values

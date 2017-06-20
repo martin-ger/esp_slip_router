@@ -7,6 +7,8 @@
 extern UartDevice    UartDev;
 bool uart_poll;
 
+extern u32_t g_bit_rate;
+
 /**
  * Opens a serial device for communication.
  * 
@@ -16,7 +18,7 @@ bool uart_poll;
 sio_fd_t ICACHE_FLASH_ATTR sio_open(u8_t devnum) {
   if (devnum = 2) {
     // Initialize HW UART
-    uart_init(BIT_RATE_115200);
+    uart_init(g_bit_rate);
 
     return &UartDev;
   }
