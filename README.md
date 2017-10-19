@@ -8,7 +8,7 @@ The Firmware starts with the following default configuration:
 - ssid: ssid, pasword: password
 - slip interface address: 192.168.240.1
 
-This means it connects to the internet via AP ssid,password and offer at the UART0 a SLIP interface with IP address 192.168.240.1. This default can be changed in the file user_config.h. 
+This means it connects to the internet via AP ssid,password and offers at UART0 a SLIP interface with IP address 192.168.240.1. This default can be changed in the file user_config.h. 
 
 To connect a linux-based host, start the firmware on the esp, connect it via serial to USB, and use the following commands on the host:
 ```
@@ -48,11 +48,11 @@ The console understands the following command:
 - scan: does a scan for APs
 
 # Building and Flashing
-To build this binary you download and install the esp-open-sdk (https://github.com/pfalcon/esp-open-sdk) and my version of the esp-open-lwip library (https://github.com/martin-ger/esp-open-lwip). Replace that in the esp-open-sdk tree. "make clean" in the esp_open_lwip dir and once again a "make" in the upper esp_open_sdk will do the job. This installs a new version of the liblwip_open.a that contains the SLIP interface and the NAT features.
+To build this binary you download and install the esp-open-sdk (https://github.com/pfalcon/esp-open-sdk). Make sure, you can compile and download the included "blinky" example.
 
-Then adjust the BUILD_AREA variable in the Makefile and any desired options in user/user_config.h.
+Then download this source tree in a separate directory and adjust the BUILD_AREA variable in the Makefile and any desired options in user/user_config.h. Build the esp_wifi_repeater firmware with "make". "make flash" flashes it onto an esp8266.
 
-Build the esp_wifi_repeater firmware with "make". "make flash" flashes it onto an esp8266.
+The source tree includes a binary version of the liblwip_open plus the required additional includes from my fork of esp-open-lwip. *No additional install action is required for that.* Only if you don't want to use the precompiled library, checkout the sources from https://github.com/martin-ger/esp-open-lwip . Use it to replace the directory "esp-open-lwip" in the esp-open-sdk tree. "make clean" in the esp_open_lwip dir and once again a "make" in the upper esp_open_sdk directory. This will compile a liblwip_open.a that contains the NAT-features. Replace liblwip_open_napt.a with that binary.
 
 If you want to use the precompiled binaries you can flash them with "esptool.py --port /dev/ttyUSB0 write_flash -fs 32m 0x00000 firmware/0x00000.bin 0x10000 firmware/0x10000.bin" (use -fs 8m for an ESP-01)
 

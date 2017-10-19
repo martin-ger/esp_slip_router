@@ -131,7 +131,7 @@ void Softuart_Init(Softuart *s, uint32_t baudrate)
 		
 		//set high for tx idle
 		GPIO_OUTPUT_SET(GPIO_ID_PIN(s->pin_tx.gpio_id), 1);
-		os_delay_us(100000);
+		os_delay_us(0xffff);
 		
 		os_printf("SOFTUART TX INIT DONE\r\n");
 	}
@@ -155,7 +155,7 @@ void Softuart_Init(Softuart *s, uint32_t baudrate)
 		ETS_GPIO_INTR_DISABLE();
 
 		//attach interrupt handler and a pointer that will be passed around each time
-		ETS_GPIO_INTR_ATTACH(Softuart_Intr_Handler, s);
+		ETS_GPIO_INTR_ATTACH((ets_isr_t)Softuart_Intr_Handler, s);
 
 		//not sure what this does... (quote from example):
 		//    void gpio_register_set(uint32 reg_id, uint32 value);
