@@ -154,7 +154,11 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "help") == 0)
     {
-        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|speed|bitrate] <val>\r\n|quit|save|reset [factory]|lock|unlock <password>");
+        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|speed|bitrate] <val>\r\n");
+        ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+        os_sprintf(response, "set [ap_ssid|ap_password|ap_open|ssid_hidden|max_clients] <val>");
+        ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+        os_sprintf(response, "quit|save|reset [factory]|lock|unlock <password>");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 #ifdef ALLOW_SCANNING
         os_sprintf(response, "|scan");
@@ -169,15 +173,24 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
       if (nTokens == 1) {
         os_sprintf(response, "SLIP: IP: " IPSTR "\r\n", IP2STR(&config.ip_addr));
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-        os_sprintf(response, "STA: SSID: %s PW: %s [AutoConnect:%d] \r\n",
+	if (config. use_ap) {
+            os_sprintf(response, "AP:  SSID:%s %s PW:%s%s\r\n",
+                   config.ap_ssid,
+		   config.ssid_hidden?"[hidden]":"",
+                   config.locked?"***":(char*)config.ap_password,
+                   config.ap_open?" [open]":"");
+            ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	} else {
+            os_sprintf(response, "STA: SSID: %s PW: %s [AutoConnect:%d] \r\n",
                    config.ssid,
                    config.locked?"***":(char*)config.password,
                    config.auto_connect);
-        ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-	if (connected) {
-	   os_sprintf(response, "External IP: " IPSTR "\r\nDNS server: " IPSTR "\r\n", IP2STR(&my_ip), IP2STR(&dns_ip));
-	} else {
-	   os_sprintf(response, "Not connected to AP\r\n");
+            ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	    if (connected) {
+	       os_sprintf(response, "External IP: " IPSTR "\r\nDNS server: " IPSTR "\r\n", IP2STR(&my_ip), IP2STR(&dns_ip));
+	    } else {
+	       os_sprintf(response, "Not connected to AP\r\n");
+	    }
 	}
 	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "Clock speed: %d\r\n", config.clock_speed);
@@ -293,6 +306,50 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
                 config.auto_connect = atoi(tokens[2]);
                 os_sprintf(response, "Auto Connect set\r\n");
                 ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"ap_ssid") == 0)
+            {
+                os_sprintf(config.ap_ssid, "%s", tokens[2]);
+                os_sprintf(response, "AP SSID set\r\n");
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"ap_password") == 0)
+            {
+		if (os_strlen(tokens[2])<8) {
+		    os_sprintf(response, "Password too short (min. 8)\r\n");
+		} else {
+                    os_sprintf(config.ap_password, "%s", tokens[2]);
+		    config.ap_open = 0;
+                    os_sprintf(response, "AP Password set\r\n");
+		}
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"ap_open") == 0)
+            {
+                config.ap_open = atoi(tokens[2]);
+                os_sprintf(response, "Open Auth set\r\n");
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"ssid_hidden") == 0)
+            {
+                config.ssid_hidden = atoi(tokens[2]);
+                os_sprintf(response, "Hidden SSID set\r\n");
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"max_clients") == 0)
+            {
+		if (atoi(tokens[2]) <= MAX_CLIENTS) {
+		    config.max_clients = atoi(tokens[2]);
+		    os_sprintf(response, "Max clients set\r\n");
+		} else {
+		    os_sprintf(response, "Invalid val (<= 8)\r\n");
+		}
                 goto command_handled;
             }
 
@@ -484,6 +541,28 @@ void ICACHE_FLASH_ATTR user_set_station_config(void)
     wifi_station_set_auto_connect(config.auto_connect != 0);
 }
 
+void ICACHE_FLASH_ATTR user_set_softap_wifi_config(void)
+{
+struct softap_config apConfig;
+
+   wifi_softap_get_config(&apConfig); // Get config first.
+    
+   os_memset(apConfig.ssid, 0, 32);
+   os_sprintf(apConfig.ssid, "%s", config.ap_ssid);
+   os_memset(apConfig.password, 0, 64);
+   os_sprintf(apConfig.password, "%s", config.ap_password);
+   if (!config.ap_open)
+      apConfig.authmode = AUTH_WPA_WPA2_PSK;
+   else
+      apConfig.authmode = AUTH_OPEN;
+   apConfig.ssid_len = 0;// or its actual length
+
+   apConfig.max_connection = config.max_clients; // how many stations can connect to ESP8266 softAP at most.
+   apConfig.ssid_hidden = config.ssid_hidden;
+
+   // Set ESP8266 softap config
+   wifi_softap_set_config(&apConfig);
+}
 
 LOCAL void
 softuart_write_char(char c)
@@ -531,7 +610,7 @@ char int_no = 2;
     // os_printf to softuart
     os_install_putc1(softuart_write_char);
 
-    os_printf("\r\n\r\nSLIP Interface V0.9 starting\r\n");
+    os_printf("\r\n\r\nSLIP Interface V1.0 starting\r\n");
 #else
     // all system output to /dev/null
     system_set_os_print(0);
@@ -544,9 +623,15 @@ char int_no = 2;
     g_bit_rate = config.bit_rate;
     remote_console_disconnect = 0;
 
-    // Now start the STA-Mode
-    wifi_set_opmode(STATION_MODE);
-    user_set_station_config();
+    if (config.use_ap) {
+	// Start the AP-Mode
+	wifi_set_opmode(SOFTAP_MODE);
+    	user_set_softap_wifi_config();
+    } else {
+	// Start the STA-Mode
+	wifi_set_opmode(STATION_MODE);
+	user_set_station_config();
+    }
 
     system_update_cpu_freq(config.clock_speed);
 

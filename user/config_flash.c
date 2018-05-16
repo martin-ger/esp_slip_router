@@ -17,6 +17,15 @@ void config_load_default(sysconfig_p config)
     os_sprintf(config->ssid,"%s",       WIFI_SSID);
     os_sprintf(config->password,"%s",   WIFI_PASSWORD);
     config->auto_connect                = 1;
+
+    config->use_ap			= false;
+    os_sprintf(config->ap_ssid,"%s",    WIFI_AP_SSID);
+    os_sprintf(config->ap_password,"%s",WIFI_AP_PASSWORD);
+    config->ap_open			= 1;
+    config->ap_on			= 1;
+    config->ssid_hidden			= 0;
+    config->max_clients			= MAX_CLIENTS;
+
     config->locked			= 0;
     IP4_ADDR(&config->ip_addr, 192, 168, 240, 1);
     config->clock_speed			= 80;
