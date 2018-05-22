@@ -662,17 +662,18 @@ char int_no = 2;
 	netif_add (&sl_netif, &config.ip_addr, &netmask, &gw, &int_no, slipif_init, ip_input);
 	netif_set_up(&sl_netif);
 
-	// Set default route to SLIP gw
-	ip_addr_t default_ip;
-	IP4_ADDR(&default_ip, 0, 0, 0, 0);
-	ip_add_route(default_ip, default_ip, gw);
+	// enable NAT on the AP interface
+	ip_addr_t ap_ip;
+	IP4_ADDR(&ap_ip, 192, 168, 4, 1);
+	ip_napt_enable(ap_ip.addr, 1);
+
     } else {
 	IP4_ADDR(&netmask, 255, 255, 255, 0);
 	IP4_ADDR(&gw, 127, 0, 0, 1);
 	netif_add (&sl_netif, &config.ip_addr, &netmask, &gw, &int_no, slipif_init, ip_input);
 	netif_set_up(&sl_netif);
 
-	// enable NAT on it for outgoing traffic via the WiFi
+	// enable NAT on the SLIP interface for outgoing traffic via WiFi
 	ip_napt_enable(config.ip_addr.addr, 1);
     }
 

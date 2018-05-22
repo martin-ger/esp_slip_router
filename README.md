@@ -10,7 +10,7 @@ The Firmware starts with the following default configuration:
 
 This means it connects to the internet via AP ssid,password and offers at UART0 a SLIP interface with IP address 192.168.240.1. This default can be changed in the file user_config.h. 
 
-To connect a linux-based host, start the firmware on the esp, connect it via serial to USB, and use the following commands on the host:
+To connect a Linux-based host, start the firmware on the esp, connect it via serial to USB, and use the following commands on the host:
 ```
 sudo slattach -p slip -s 115200 /dev/ttyUSB0&
 sudo ifconfig sl0 192.168.240.2 pointopoint 192.168.240.1 up mtu 1500
@@ -46,6 +46,39 @@ The console understands the following command:
 - lock: locks the current config, changes are not allowed
 - unlock [password]: unlocks the config, requires password of the network AP
 - scan: does a scan for APs
+
+# Usage as AP
+You can also turn the sides and make the ESP to work as AP - useful e.g. if you want to connect other devices to a RasPi that has no WiFi interface:
+
+With a Linux-based host start the firmware on the esp, connect it via serial to USB, and use the following commands on the host:
+```
+sudo slattach -p slip -s 115200 /dev/ttyUSB0&
+sudo ifconfig sl0 192.168.240.2 pointopoint 192.168.240.1 up mtu 1500
+sudo route add -net 192.168.4.0/24 gw 192.168.240.1
+```
+again 
+```
+telnet 192.168.240.1 7777
+```
+should give you terminal access to the ESP as router. On the ESP you then enter:
+
+```
+CMD>set ap_ssid <your_ssid> 
+CMD>set ap_password <your_pw> 
+CMD>set use_ap 1
+CMD>save
+CMD>reset
+```
+
+Now STAs of this AP get IP adresses in the 192.168.4.0/24 network and can reach the Linux machine as "192.168.240.2". The AP interface is NATed, i.e. you cannot set up connections from the Linux machine to the STAs, but from STAs to Linux works. Useful e.g. if you want to reach an MQTT server on the Linux. DNS currently doesn't work here.
+
+The console understands the following command for the AP mode:
+- set use_ap [0|1]: selects, whether the esp_slip_router uses an STA interface (use_ap = 0, default) or an AP interface (use_ap = 1)
+- set [ap_ssid|ap_password] _value_: changes the settings for the soft-AP of the ESP (for your stations)
+- set ap_open [0|1]: selects, whether the soft-AP uses WPA2-PSK security (ap_open=0,  automatic, if an ap_password is set) or open (ap_open=1)
+- set ssid_hidden [0|1]: selects, whether the SSID of the soft-AP is hidden (ssid_hidden=1) or visible (ssid_hidden=0, default)
+- set max_clients [1-8]: sets the number of STAs that can connct to the SoftAP (limit of the ESP's SoftAP implementation is 8, default)
+
 
 # Building and Flashing
 To build this binary you download and install the esp-open-sdk (https://github.com/pfalcon/esp-open-sdk). Make sure, you can compile and download the included "blinky" example.
