@@ -11,6 +11,7 @@
 #include "lwip/app/espconn_tcp.h"
 
 #include "lwip/ip.h"
+#include "lwip/ip_route.h"
 #include "netif/slipif.h"
 #include "driver/uart.h"
 #include "driver/softuart.h"
@@ -156,7 +157,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
     {
         os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|speed|bitrate] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-        os_sprintf(response, "set [ap_ssid|ap_password|ap_open|ssid_hidden|max_clients] <val>");
+        os_sprintf(response, "set [ap_ssid|ap_password|ap_open|use_ap|ssid_hidden|max_clients] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "quit|save|reset [factory]|lock|unlock <password>");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
@@ -173,13 +174,12 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
       if (nTokens == 1) {
         os_sprintf(response, "SLIP: IP: " IPSTR "\r\n", IP2STR(&config.ip_addr));
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-	if (config. use_ap) {
+	if (config.use_ap) {
             os_sprintf(response, "AP:  SSID:%s %s PW:%s%s\r\n",
                    config.ap_ssid,
 		   config.ssid_hidden?"[hidden]":"",
                    config.locked?"***":(char*)config.ap_password,
                    config.ap_open?" [open]":"");
-            ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	} else {
             os_sprintf(response, "STA: SSID: %s PW: %s [AutoConnect:%d] \r\n",
                    config.ssid,
@@ -313,6 +313,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
             {
                 os_sprintf(config.ap_ssid, "%s", tokens[2]);
                 os_sprintf(response, "AP SSID set\r\n");
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
 
@@ -325,6 +326,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 		    config.ap_open = 0;
                     os_sprintf(response, "AP Password set\r\n");
 		}
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
 
@@ -332,6 +334,18 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
             {
                 config.ap_open = atoi(tokens[2]);
                 os_sprintf(response, "Open Auth set\r\n");
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"use_ap") == 0)
+            {
+                config.use_ap = atoi(tokens[2]);
+		if (config.use_ap)
+                    os_sprintf(response, "Using AP interface\r\n");
+		else
+                    os_sprintf(response, "Using STA interface\r\n");
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
 
@@ -339,6 +353,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
             {
                 config.ssid_hidden = atoi(tokens[2]);
                 os_sprintf(response, "Hidden SSID set\r\n");
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
 
@@ -350,6 +365,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 		} else {
 		    os_sprintf(response, "Invalid val (<= 8)\r\n");
 		}
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
 
@@ -640,13 +656,25 @@ char int_no = 2;
     uart0_unload_fn = write_to_pbuf;
 
     // Configure the SLIP interface
-    IP4_ADDR(&netmask, 255, 255, 255, 0);
-    IP4_ADDR(&gw, 127, 0, 0, 1);
-    netif_add (&sl_netif, &config.ip_addr, &netmask, &gw, &int_no, slipif_init, ip_input);
-    netif_set_up(&sl_netif);
+    if (config.use_ap) {
+	IP4_ADDR(&netmask, 255, 255, 255, 0);
+	IP4_ADDR(&gw, 192, 168, 240, 2);
+	netif_add (&sl_netif, &config.ip_addr, &netmask, &gw, &int_no, slipif_init, ip_input);
+	netif_set_up(&sl_netif);
 
-    // enable NAT on it for outgoing traffic via the WiFi
-    ip_napt_enable(config.ip_addr.addr, 1);
+	// Set default route to SLIP gw
+	ip_addr_t default_ip;
+	IP4_ADDR(&default_ip, 0, 0, 0, 0);
+	ip_add_route(default_ip, default_ip, gw);
+    } else {
+	IP4_ADDR(&netmask, 255, 255, 255, 0);
+	IP4_ADDR(&gw, 127, 0, 0, 1);
+	netif_add (&sl_netif, &config.ip_addr, &netmask, &gw, &int_no, slipif_init, ip_input);
+	netif_set_up(&sl_netif);
+
+	// enable NAT on it for outgoing traffic via the WiFi
+	ip_napt_enable(config.ip_addr.addr, 1);
+    }
 
     // Start the telnet server (TCP)
     os_printf("Starting Console TCP Server on %d port\r\n", CONSOLE_SERVER_PORT);

@@ -23,7 +23,7 @@ should give you terminal access to the esp as router.
 
 To get full internet access you will need aditionally a route:
 ```
-sudo sudo route add default gw 192.168.240.1
+sudo route add default gw 192.168.240.1
 ```
 and a DNS server - add an appropriate entry (e.g. the one that "show" tells you on the router console) in /etc/resolv.conf, eg. by (as root):
 ```
