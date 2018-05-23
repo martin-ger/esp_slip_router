@@ -349,6 +349,19 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
                 goto command_handled;
             }
 
+            if (strcmp(tokens[1],"ap_channel") == 0)
+            {
+		uint8_t chan = atoi(tokens[2]);
+		if (chan >= 1 && chan <= 13) {
+		    config.ap_channel = chan;
+            	    os_sprintf(response, "AP channel set to %d\r\n", config.ap_channel);
+		} else {
+		    os_sprintf(response, "Invalid channel (1-13)\r\n");
+		}
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+                goto command_handled;
+            }
+
             if (strcmp(tokens[1],"ssid_hidden") == 0)
             {
                 config.ssid_hidden = atoi(tokens[2]);
@@ -567,6 +580,7 @@ struct softap_config apConfig;
    os_sprintf(apConfig.ssid, "%s", config.ap_ssid);
    os_memset(apConfig.password, 0, 64);
    os_sprintf(apConfig.password, "%s", config.ap_password);
+   apConfig.channel = config.ap_channel;
    if (!config.ap_open)
       apConfig.authmode = AUTH_WPA_WPA2_PSK;
    else

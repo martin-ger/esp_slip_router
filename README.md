@@ -75,6 +75,7 @@ Now STAs of this AP get IP adresses in the 192.168.4.0/24 network and can reach 
 The console understands the following command for the AP mode:
 - set use_ap [0|1]: selects, whether the esp_slip_router uses an STA interface (use_ap = 0, default) or an AP interface (use_ap = 1)
 - set [ap_ssid|ap_password] _value_: changes the settings for the soft-AP of the ESP (for your stations)
+- set ap_channel [1-13]: sets the channel of the SoftAP (default 1)
 - set ap_open [0|1]: selects, whether the soft-AP uses WPA2-PSK security (ap_open=0,  automatic, if an ap_password is set) or open (ap_open=1)
 - set ssid_hidden [0|1]: selects, whether the SSID of the soft-AP is hidden (ssid_hidden=1) or visible (ssid_hidden=0, default)
 - set max_clients [1-8]: sets the number of STAs that can connct to the SoftAP (limit of the ESP's SoftAP implementation is 8, default)

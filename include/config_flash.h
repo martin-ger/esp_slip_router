@@ -9,7 +9,7 @@
 #include "os_type.h"
 #include "spi_flash.h"
 
-#define MAGIC_NUMBER    0x01200581
+#define MAGIC_NUMBER    0x01200583
 
 typedef struct
 {
@@ -26,6 +26,7 @@ typedef struct
     uint8_t     use_ap;		   // Should we run as AP instead of STA
     uint8_t     ap_ssid[32];       // SSID of the own AP
     uint8_t     ap_password[64];   // Password of the own network
+    uint8_t     ap_channel;        // Channel of the AP
     uint8_t     ap_open;           // Should we use no WPA?
     uint8_t	ap_on;		   // AP enabled?
     uint8_t	ssid_hidden;	   // Hidden SSID?
