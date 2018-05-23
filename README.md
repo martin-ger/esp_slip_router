@@ -37,7 +37,7 @@ The console understands the following command:
 - help: prints a short help message
 - show: prints the current config and status
 - set ssid|pasword [value]: changes the named config parameter
-- set addr [ip-addr]: sets the IP address of the SLIP interface
+- set addr [ip-addr]: sets the IP address of the SLIP interface (default: 192.168.240.1)
 - set speed [80|160]: sets the CPU clock frequency
 - set bitrate [bitrate]: sets the serial bitrate to a new value
 - save: saves the current parameters to flash
@@ -79,6 +79,7 @@ The console understands the following command for the AP mode:
 - set ap_open [0|1]: selects, whether the soft-AP uses WPA2-PSK security (ap_open=0,  automatic, if an ap_password is set) or open (ap_open=1)
 - set ssid_hidden [0|1]: selects, whether the SSID of the soft-AP is hidden (ssid_hidden=1) or visible (ssid_hidden=0, default)
 - set max_clients [1-8]: sets the number of STAs that can connct to the SoftAP (limit of the ESP's SoftAP implementation is 8, default)
+- set addr_peer [ip-addr]: sets the IP address of the peer of the SLIP interface that is also the default gateway (default: 192.168.240.2)
 
 
 # Building and Flashing

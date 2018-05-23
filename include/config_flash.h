@@ -15,7 +15,7 @@ typedef struct
 {
     // To check if the structure is initialized, matching or not in flash
     uint32_t    magic_number;
-    uint16_t     length;
+    uint16_t    length;
 
     // Config parameters
 
@@ -34,6 +34,7 @@ typedef struct
 
     uint8_t     locked;		// Should we allow for config changes
     ip_addr_t	ip_addr;	// Address of the slip interface
+    ip_addr_t	ip_addr_peer;	// Address of the slip interface
 
     uint16_t	clock_speed;	// Freq of the CPU
     uint32_t    bit_rate;       // Bit rate of serial link

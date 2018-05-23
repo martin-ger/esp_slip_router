@@ -155,9 +155,9 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "help") == 0)
     {
-        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|speed|bitrate] <val>\r\n");
+        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|addr_peer|speed|bitrate] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-        os_sprintf(response, "set [ap_ssid|ap_password|ap_open|use_ap|ssid_hidden|max_clients] <val>\r\n");
+        os_sprintf(response, "set [use_ap|ap_ssid|ap_password|ap_channel|ap_open|ssid_hidden|max_clients] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "quit|save|reset [factory]|lock|unlock <password>");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
@@ -172,7 +172,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
     if (strcmp(tokens[0], "show") == 0)
     {
       if (nTokens == 1) {
-        os_sprintf(response, "SLIP: IP: " IPSTR "\r\n", IP2STR(&config.ip_addr));
+        os_sprintf(response, "SLIP: IP: " IPSTR " PeerIP: " IPSTR "\r\n", IP2STR(&config.ip_addr), IP2STR(&config.ip_addr_peer));
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	if (config.use_ap) {
             os_sprintf(response, "AP:  SSID:%s %s PW:%s%s\r\n",
@@ -402,6 +402,16 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
                 ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
+
+            if (strcmp(tokens[1],"addr_peer") == 0)
+            {
+                config.ip_addr_peer.addr = ipaddr_addr(tokens[2]);
+                os_sprintf(response, "IP peer address set to %d.%d.%d.%d/24\r\n", 
+			IP2STR(&config.ip_addr_peer));
+                ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+                goto command_handled;
+            }
+
 
             if (strcmp(tokens[1],"bitrate") == 0)
             {
@@ -672,8 +682,7 @@ char int_no = 2;
     // Configure the SLIP interface
     if (config.use_ap) {
 	IP4_ADDR(&netmask, 255, 255, 255, 0);
-	IP4_ADDR(&gw, 192, 168, 240, 2);
-	netif_add (&sl_netif, &config.ip_addr, &netmask, &gw, &int_no, slipif_init, ip_input);
+	netif_add (&sl_netif, &config.ip_addr, &netmask, &config.ip_addr_peer, &int_no, slipif_init, ip_input);
 	netif_set_up(&sl_netif);
 
 	// enable NAT on the AP interface

@@ -29,6 +29,7 @@ void config_load_default(sysconfig_p config)
 
     config->locked			= 0;
     IP4_ADDR(&config->ip_addr, 192, 168, 240, 1);
+    IP4_ADDR(&config->ip_addr_peer, 192, 168, 240, 2);
     config->clock_speed			= 80;
     config->bit_rate                    = 115200;
 }
