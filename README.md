@@ -91,6 +91,8 @@ The source tree includes a binary version of the liblwip_open plus the required 
 
 If you want to use the precompiled binaries you can flash them with "esptool.py --port /dev/ttyUSB0 write_flash -fs 32m 0x00000 firmware/0x00000.bin 0x10000 firmware/0x10000.bin" (use -fs 8m for an ESP-01)
 
+Sometimes, there is a wrong or non-matching version of "esp_init_data_default.bin" in the flash. If the firmware files from above flash correctly but after reboot you see only garbage on the serial and/or the LED on GPIO2 is flashing rapidly, try to re-initialize this sector: download https://github.com/martin-ger/esp_wifi_repeater/raw/master/firmware/esp_init_data_default_v08_vdd33.bin and flash it to 0x7c000 for 512 kB modules (some ESP-01, Sonoff Switch), 0xfc000 for 1 MB modules (most ESP-01), or 0x3fc000 for 4 MB modules (most ESP-12, Wemos D1). 
+
 # Softuart UART
 As UART0, the HW UART of the esp8266 is busy with the SLIP protocoll, it cannot be used simultaniuosly as debugging output. This is highly uncomfortable especially during development. If you define DEBUG_SOFTUART in user_config.h, a second UART will be simulated in software (Rx GPIO 14, Tx GPIO 12, 19200 baud). All debug output (os_printf) will then be redirectd to this port.
 
