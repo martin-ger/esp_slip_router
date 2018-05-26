@@ -35,7 +35,7 @@ The default config of the router can be overwritten and persistenly saved to fla
 
 The console understands the following command:
 - help: prints a short help message
-- show: prints the current config and status
+- show [stats]: prints the current config and status
 - set ssid|pasword [value]: changes the named config parameter
 - set addr [ip-addr]: sets the IP address of the SLIP interface (default: 192.168.240.1)
 - set speed [80|160]: sets the CPU clock frequency
