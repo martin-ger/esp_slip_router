@@ -19,7 +19,7 @@ typedef enum {SIG_DO_NOTHING=0, SIG_START_SERVER=2, SIG_SEND_DATA, SIG_CONSOLE_R
 //
 // Define this for debug output on the SoftUART (Rx GPIO 14, Tx GPIO 12)
 //
-//#define DEBUG_SOFTUART      1
+#define DEBUG_SOFTUART      1
 
 //
 // Define this to support the "scan" command for AP search

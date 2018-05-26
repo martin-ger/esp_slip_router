@@ -199,6 +199,35 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	goto command_handled;
       }
+
+      if (nTokens == 2 && strcmp(tokens[1], "stats") == 0) {
+/*
+	   os_sprintf(response, "%d KiB in (%d packets)\r\n%d KiB out (%d packets)\r\n", 
+			(uint32_t)(Bytes_in/1024), Packets_in, 
+			(uint32_t)(Bytes_out/1024), Packets_out);
+	   ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+*/
+	   os_sprintf(response, "Free mem: %d\r\n", system_get_free_heap_size());
+	   ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+
+	   if (config.use_ap) {
+	     os_sprintf(response, "%d Station%s connected to SoftAP\r\n", wifi_softap_get_station_num(),
+		  wifi_softap_get_station_num()==1?"":"s");
+	     ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	   } else {
+	     if (connected) {
+		struct netif *sta_nf = (struct netif *)eagle_lwip_getif(0);
+		os_sprintf(response, "STA IP: %d.%d.%d.%d GW: %d.%d.%d.%d\r\n", IP2STR(&sta_nf->ip_addr), IP2STR(&sta_nf->gw));
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+		os_sprintf(response, "STA RSSI: %d\r\n", wifi_station_get_rssi());
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	     } else {
+		os_sprintf(response, "STA not connected\r\n");
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	     }
+	   }
+	   goto command_handled;
+      }
     }
 
     if (strcmp(tokens[0], "save") == 0)
@@ -700,12 +729,14 @@ char int_no = 2;
 	ip_napt_enable(config.ip_addr.addr, 1);
     }
 
+    wifi_status_led_install (2, PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
+
     // Start the telnet server (TCP)
     os_printf("Starting Console TCP Server on %d port\r\n", CONSOLE_SERVER_PORT);
     struct espconn *pCon = (struct espconn *)os_zalloc(sizeof(struct espconn));
     if (pCon == NULL)
     {
-        os_printf("CONNECT FAIL\r\n");
+        os_printf("ALLOC FAIL\r\n");
         return;
     }
 
