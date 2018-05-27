@@ -1,16 +1,12 @@
 # esp_slip_router
 A SLIP to WiFi router
 
-This is a proof of concept implementation of a SLIP (Serial Line IP - RFC1055) router on the esp8266. It can be used as simple (and slow) network interface to get WiFi connectivity. The esp also acts as STA and transparently forwards any IP traffic through it. As it uses NAT no routing entries are required on the network side. 
+This is implementation of a SLIP (Serial Line IP - RFC1055) router on the ESP8266. It can be used as simple (and slow) network interface to get WiFi connectivity. The ESP can act as STA or as AP. It transparently forwards any IP traffic through it. As it uses NAT no routing entries are required on the other side. 
 
-# Usage
-The Firmware starts with the following default configuration:
-- ssid: ssid, pasword: password
-- slip interface address: 192.168.240.1
+# Usage as STA
+In this mode the ESP connects to the internet via an AP with ssid, password and offers at UART0 a SLIP interface with IP address 192.168.240.1. This default can be changed in the file user_config.h. 
 
-This means it connects to the internet via AP ssid,password and offers at UART0 a SLIP interface with IP address 192.168.240.1. This default can be changed in the file user_config.h. 
-
-To connect a Linux-based host, start the firmware on the esp, connect it via serial to USB, and use the following commands on the host:
+To connect a Linux-based host, start the firmware on the ESP, connect it via serial to USB, and use the following commands on the host:
 ```
 sudo slattach -p slip -s 115200 /dev/ttyUSB0&
 sudo ifconfig sl0 192.168.240.2 pointopoint 192.168.240.1 up mtu 1500
@@ -19,7 +15,15 @@ now
 ```
 telnet 192.168.240.1 7777
 ```
-should give you terminal access to the esp as router.
+gives you terminal access to the esp as router. On the ESP you then enter:
+
+```
+CMD>set ssid <your_ssid> 
+CMD>set password <your_pw> 
+CMD>set use_ap 0
+CMD>save
+CMD>reset
+```
 
 To get full internet access you will need aditionally a route:
 ```
@@ -60,7 +64,7 @@ again
 ```
 telnet 192.168.240.1 7777
 ```
-should give you terminal access to the ESP as router. On the ESP you then enter:
+gives you terminal access to the ESP as router. On the ESP you then enter:
 
 ```
 CMD>set ap_ssid <your_ssid> 
