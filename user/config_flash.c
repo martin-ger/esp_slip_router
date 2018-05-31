@@ -26,6 +26,7 @@ void config_load_default(sysconfig_p config)
     config->ap_on			= 1;
     config->ssid_hidden			= 0;
     config->max_clients			= MAX_CLIENTS;
+    IP4_ADDR(&config->ap_dns, 192, 168, 240, 2);
 
     config->locked			= 0;
     IP4_ADDR(&config->ip_addr, 192, 168, 240, 1);

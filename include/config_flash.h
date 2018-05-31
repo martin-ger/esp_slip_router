@@ -31,10 +31,11 @@ typedef struct
     uint8_t	ap_on;		   // AP enabled?
     uint8_t	ssid_hidden;	   // Hidden SSID?
     uint8_t	max_clients;	   // Max number of STAs on the SoftAP
+    ip_addr_t	ap_dns;		// Address of the DNS server that is distributed via DHCP
 
     uint8_t     locked;		// Should we allow for config changes
     ip_addr_t	ip_addr;	// Address of the slip interface
-    ip_addr_t	ip_addr_peer;	// Address of the slip interface
+    ip_addr_t	ip_addr_peer;	// Address of the slip interface's peer
 
     uint16_t	clock_speed;	// Freq of the CPU
     uint32_t    bit_rate;       // Bit rate of serial link

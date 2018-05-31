@@ -157,7 +157,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
     {
         os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|addr_peer|speed|bitrate] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-        os_sprintf(response, "set [use_ap|ap_ssid|ap_password|ap_channel|ap_open|ssid_hidden|max_clients] <val>\r\n");
+        os_sprintf(response, "set [use_ap|ap_ssid|ap_password|ap_channel|ap_open|ssid_hidden|max_clients|dns] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "quit|save|reset [factory]|lock|unlock <password>");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
@@ -175,6 +175,8 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
         os_sprintf(response, "SLIP: IP: " IPSTR " PeerIP: " IPSTR "\r\n", IP2STR(&config.ip_addr), IP2STR(&config.ip_addr_peer));
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	if (config.use_ap) {
+	    os_sprintf(response, "DNS server: " IPSTR "\r\n", IP2STR(&config.ap_dns));
+	    ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
             os_sprintf(response, "AP:  SSID:%s %s PW:%s%s\r\n",
                    config.ap_ssid,
 		   config.ssid_hidden?"[hidden]":"",
@@ -408,6 +410,15 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 		    os_sprintf(response, "Invalid val (<= 8)\r\n");
 		}
 		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+                goto command_handled;
+            }
+
+            if (strcmp(tokens[1],"dns") == 0)
+            {
+                config.ap_dns.addr = ipaddr_addr(tokens[2]);
+                os_sprintf(response, "DNS address set to %d.%d.%d.%d/24\r\n", 
+			IP2STR(&config.ap_dns));
+                ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
             }
 
@@ -696,6 +707,8 @@ char int_no = 2;
 	// Start the AP-Mode
 	wifi_set_opmode(SOFTAP_MODE);
     	user_set_softap_wifi_config();
+
+	dhcps_set_DNS(&config.ap_dns);
     } else {
 	// Start the STA-Mode
 	wifi_set_opmode(STATION_MODE);
