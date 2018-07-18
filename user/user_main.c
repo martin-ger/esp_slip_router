@@ -257,7 +257,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 	}
         os_printf("Restarting ... \r\n");
 	system_restart();
-        goto command_handled;
+        while(true);
     }
 
     if (strcmp(tokens[0], "quit") == 0)
