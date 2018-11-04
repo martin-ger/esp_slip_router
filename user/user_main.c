@@ -7,6 +7,7 @@
 #include "lwip/ip_addr.h"
 #include "lwip/netif.h"
 #include "lwip/dns.h"
+#include "lwip/lwip_napt.h"
 #include "lwip/app/espconn.h"
 #include "lwip/app/espconn_tcp.h"
 
@@ -23,6 +24,10 @@
 #define user_procTaskPrio        0
 #define user_procTaskQueueLen    10
 os_event_t    user_procTaskQueue[user_procTaskQueueLen];
+
+static char INVALID_LOCKED[] = "Invalid command. Config locked\r\n";
+static char INVALID_NUMARGS[] = "Invalid number of arguments\r\n";
+static char INVALID_ARG[] = "Invalid argument\r\n";
 
 Softuart softuart;
 
@@ -127,7 +132,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 {
     char cmd_line[256];
     char response[256];
-    char *tokens[5];
+    char *tokens[6];
 
     int bytes_count, nTokens, i, j;
 
@@ -145,7 +150,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     cmd_line[bytes_count] = 0;
 
-    nTokens = parse_str_into_tokens(cmd_line, tokens, 5);
+    nTokens = parse_str_into_tokens(cmd_line, tokens, 6);
 
     if (nTokens == 0) {
 	char c = '\n';
@@ -159,7 +164,9 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "set [use_ap|ap_ssid|ap_password|ap_channel|ap_open|ssid_hidden|max_clients|dns] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-        os_sprintf(response, "quit|save|reset [factory]|lock|unlock <password>");
+        os_sprintf(response, "quit|save|reset [factory]|lock|unlock <password>\r\n");
+        ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+        os_sprintf(response, "portmap [add|remove] [TCP|UDP] <ext_port> <int_addr> <int_port>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 #ifdef ALLOW_SCANNING
         os_sprintf(response, "|scan");
@@ -171,6 +178,10 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "show") == 0)
     {
+      int16_t i;
+      struct portmap_table *p;
+      ip_addr_t i_ip;
+
       if (nTokens == 1) {
         os_sprintf(response, "SLIP: IP: " IPSTR " PeerIP: " IPSTR "\r\n", IP2STR(&config.ip_addr), IP2STR(&config.ip_addr_peer));
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
@@ -199,6 +210,18 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	os_sprintf(response, "Serial bit rate: %d\r\n", config.bit_rate);
 	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+
+	for (i = 0; i<IP_PORTMAP_MAX; i++) {
+	    p = &ip_portmap_table[i];
+	    if(p->valid) {
+		i_ip.addr = p->daddr;
+		os_sprintf(response, "Portmap: %s: " IPSTR ":%d -> "  IPSTR ":%d\r\n",
+		   p->proto==IP_PROTO_TCP?"TCP":p->proto==IP_PROTO_UDP?"UDP":"???",
+		   IP2STR(&my_ip), ntohs(p->mport), IP2STR(&i_ip), ntohs(p->dport));
+		ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	    }
+	}
+
 	goto command_handled;
       }
 
@@ -234,7 +257,9 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "save") == 0)
     {
-        config_save(0, &config);
+        config_save(&config);
+	// also save the portmap table
+	blob_save(0, (uint32_t *)ip_portmap_table, sizeof(struct portmap_table) * IP_PORTMAP_MAX);
         os_sprintf(response, "Config saved\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         goto command_handled;
@@ -253,7 +278,9 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
     {
 	if (nTokens == 2 && strcmp(tokens[1], "factory") == 0) {
            config_load_default(&config);
-           config_save(0, &config);
+           config_save(&config);
+	   // clear saved portmap table
+	   blob_zero(0, sizeof(struct portmap_table) * IP_PORTMAP_MAX);
 	}
         os_printf("Restarting ... \r\n");
 	system_restart();
@@ -266,6 +293,61 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
         goto command_handled;
     }
 
+    if (strcmp(tokens[0], "portmap") == 0)
+    {
+    uint32_t daddr;
+    uint16_t mport;
+    uint16_t dport;
+    uint8_t proto;
+    bool add;
+    uint8_t retval;
+
+        if (config.locked)
+        {
+            os_sprintf(response, INVALID_LOCKED);
+	    ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+            goto command_handled;
+        }
+
+        if (nTokens < 4 || (strcmp(tokens[1],"add")==0 && nTokens != 6))
+        {
+            os_sprintf(response, INVALID_NUMARGS);
+	    ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	    goto command_handled;
+        }
+
+        add = strcmp(tokens[1],"add")==0;
+	if (!add && strcmp(tokens[1],"remove")!=0) {
+	    os_sprintf(response, INVALID_ARG);
+	    ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	    goto command_handled;
+	}
+
+	if (strcmp(tokens[2],"TCP") == 0) proto = IP_PROTO_TCP;
+	else if (strcmp(tokens[2],"UDP") == 0) proto = IP_PROTO_UDP;
+        else {
+	    os_sprintf(response, INVALID_ARG);
+	    ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+	    goto command_handled;
+	}
+
+        mport = (uint16_t)atoi(tokens[3]);
+	if (add) {
+	    daddr = ipaddr_addr(tokens[4]);
+            dport = atoi(tokens[5]);
+	    retval = ip_portmap_add(proto, my_ip.addr, mport, daddr, dport);
+	} else {
+            retval = ip_portmap_remove(proto, mport);
+	}
+
+	if (retval) {
+	    os_sprintf(response, "Portmap %s\r\n", add?"set":"deleted");
+	} else {
+	    os_sprintf(response, "Portmap failed\r\n");
+	}
+	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+        goto command_handled;
+    }
 
     if (strcmp(tokens[0], "lock") == 0)
     {
@@ -279,7 +361,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
     {
         if (nTokens != 2)
         {
-            os_sprintf(response, "Invalid number of arguments\r\n");
+            os_sprintf(response, INVALID_NUMARGS);
             ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         }
         else if (strcmp(tokens[1],config.password) == 0) {
@@ -298,7 +380,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
     {
         if (config.locked)
         {
-            os_sprintf(response, "Invalid set command. Config locked\r\n");
+            os_sprintf(response, INVALID_LOCKED);
             ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
             goto command_handled;
         }
@@ -309,7 +391,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
          */
         if (nTokens < 3)
         {
-            os_sprintf(response, "Invalid number of arguments\r\n");
+            os_sprintf(response, INVALID_NUMARGS);
             ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
             goto command_handled;
         }
@@ -570,6 +652,7 @@ static void ICACHE_FLASH_ATTR user_procTask(os_event_t *events)
 /* Callback called when the connection state of the module with an Access Point changes */
 void wifi_handle_event_cb(System_Event_t *evt)
 {
+int i;
 
     //os_printf("wifi_handle_event_cb: ");
     switch (evt->event)
@@ -594,6 +677,13 @@ void wifi_handle_event_cb(System_Event_t *evt)
 
 	my_ip = evt->event_info.got_ip.ip;
 	connected = true;
+
+	// Update any predefined portmaps to the new IP addr
+        for (i = 0; i<IP_PORTMAP_MAX; i++) {
+	  if(ip_portmap_table[i].valid) {
+	     ip_portmap_table[i].maddr = my_ip.addr;
+	  }
+	}
 
         // Post a Server Start message as the IP has been acquired to Task with priority 0
 	system_os_post(user_procTaskPrio, SIG_START_SERVER, 0 );
@@ -697,8 +787,15 @@ char int_no = 2;
     os_install_putc1(void_write_char);
 #endif /* DEBUG_SOFTUART */
 
-    // Load WiFi-config
-    config_load(0, &config);
+    // Load config
+    if (config_load(&config)== 0) {
+	// valid config in FLASH, can read portmap table
+	blob_load(0, (uint32_t *)ip_portmap_table, sizeof(struct portmap_table) * IP_PORTMAP_MAX);
+    } else {
+
+	// clear portmap table
+	blob_zero(0, sizeof(struct portmap_table) * IP_PORTMAP_MAX);
+    }
 
     g_bit_rate = config.bit_rate;
     remote_console_disconnect = 0;
@@ -728,9 +825,8 @@ char int_no = 2;
 	netif_set_up(&sl_netif);
 
 	// enable NAT on the AP interface
-	ip_addr_t ap_ip;
-	IP4_ADDR(&ap_ip, 192, 168, 4, 1);
-	ip_napt_enable(ap_ip.addr, 1);
+	IP4_ADDR(&my_ip, 192, 168, 4, 1);
+	ip_napt_enable(my_ip.addr, 1);
 
     } else {
 	IP4_ADDR(&netmask, 255, 255, 255, 0);

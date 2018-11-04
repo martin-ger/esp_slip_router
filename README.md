@@ -44,6 +44,8 @@ The console understands the following command:
 - set addr [ip-addr]: sets the IP address of the SLIP interface (default: 192.168.240.1)
 - set speed [80|160]: sets the CPU clock frequency
 - set bitrate [bitrate]: sets the serial bitrate to a new value
+- portmap add [TCP|UDP] _external_port_ _internal_ip_ _internal_port_: adds a port forwarding (works in STA mode)
+- portmap remove [TCP|UDP] _external_port_: deletes a port forwarding
 - save: saves the current parameters to flash
 - quit: terminates a remote session
 - reset [factory]: resets the esp and applies the config, optionally resets WiFi params to default values

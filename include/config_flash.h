@@ -9,6 +9,8 @@
 #include "os_type.h"
 #include "spi_flash.h"
 
+#define FLASH_BLOCK_NO 0xc
+
 #define MAGIC_NUMBER    0x01200583
 
 typedef struct
@@ -41,7 +43,12 @@ typedef struct
     uint32_t    bit_rate;       // Bit rate of serial link
 } sysconfig_t, *sysconfig_p;
 
-int config_load(int version, sysconfig_p config);
-void config_save(int version, sysconfig_p config);
+int config_load(sysconfig_p config);
+void config_load_default(sysconfig_p config);
+void config_save(sysconfig_p config);
+
+void blob_save(uint8_t blob_no, uint32_t *data, uint16_t len);
+void blob_load(uint8_t blob_no, uint32_t *data, uint16_t len);
+void blob_zero(uint8_t blob_no, uint16_t len);
 
 #endif

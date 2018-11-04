@@ -35,10 +35,10 @@ void config_load_default(sysconfig_p config)
     config->bit_rate                    = 115200;
 }
 
-int config_load(int version, sysconfig_p config)
+int config_load(sysconfig_p config)
 {
     if (config == NULL) return -1;
-    uint16_t base_address = 0x0c + version;
+    uint16_t base_address = FLASH_BLOCK_NO;
 
     spi_flash_read(base_address* SPI_FLASH_SEC_SIZE, &config->magic_number, 4);
 
@@ -46,7 +46,7 @@ int config_load(int version, sysconfig_p config)
     {
         os_printf("\r\nNo config found, saving default in flash\r\n");
         config_load_default(config);
-        config_save(version, config);
+        config_save(config);
         return -1;
     }
 
@@ -56,18 +56,41 @@ int config_load(int version, sysconfig_p config)
     {
         os_printf("Length Mismatch, probably old version of config, loading defaults\r\n");
         config_load_default(config);
-        config_save(version, config);
+        config_save(config);
 	return -1;
     }
     return 0;
 }
 
-void config_save(int version, sysconfig_p config)
+void config_save(sysconfig_p config)
 {
-    uint16_t base_address = 0x0c + version;
+    uint16_t base_address = FLASH_BLOCK_NO;
     os_printf("Saving configuration\r\n");
     spi_flash_erase_sector(base_address);
     spi_flash_write(base_address * SPI_FLASH_SEC_SIZE, (uint32 *)config, sizeof(sysconfig_t));
+}
+
+void ICACHE_FLASH_ATTR blob_save(uint8_t blob_no, uint32_t *data, uint16_t len)
+{
+    uint16_t base_address = FLASH_BLOCK_NO + 1 + blob_no;
+    spi_flash_erase_sector(base_address);
+    spi_flash_write(base_address * SPI_FLASH_SEC_SIZE, data, len);
+}
+
+void ICACHE_FLASH_ATTR blob_load(uint8_t blob_no, uint32_t *data, uint16_t len)
+{
+    uint16_t base_address = FLASH_BLOCK_NO + 1 + blob_no;
+    spi_flash_read(base_address * SPI_FLASH_SEC_SIZE, data, len);
+}
+
+void ICACHE_FLASH_ATTR blob_zero(uint8_t blob_no, uint16_t len)
+{
+int i;
+    uint8_t z[len];
+    os_memset(z, 0,len);
+    uint16_t base_address = FLASH_BLOCK_NO + 1 + blob_no;
+    spi_flash_erase_sector(base_address);
+    spi_flash_write(base_address * SPI_FLASH_SEC_SIZE, (uint32_t *)z, len);
 }
 
 const uint8_t esp_init_data_default[] = {
