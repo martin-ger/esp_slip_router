@@ -755,6 +755,16 @@ write_to_pbuf(char c)
     slipif_received_byte(&sl_netif, c);
 }
 
+static void ICACHE_FLASH_ATTR set_netif(ip_addr_t netif_ip)
+{
+struct netif *nif;
+
+	for (nif = netif_list; nif != NULL && nif->ip_addr.addr != netif_ip.addr; nif = nif->next);
+	if (nif == NULL) return;
+
+	nif->napt = 1;
+}
+
 //-------------------------------------------------------------------------------------------------
 //Init function
 void ICACHE_FLASH_ATTR  user_init()
@@ -825,8 +835,8 @@ char int_no = 2;
 	netif_set_up(&sl_netif);
 
 	// enable NAT on the AP interface
-	IP4_ADDR(&my_ip, 192, 168, 4, 1);
-	ip_napt_enable(my_ip.addr, 1);
+	//IP4_ADDR(&my_ip, 192, 168, 4, 1);
+	//ip_napt_enable(my_ip.addr, 1);
 
     } else {
 	IP4_ADDR(&netmask, 255, 255, 255, 0);
