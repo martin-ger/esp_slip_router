@@ -90,7 +90,7 @@ The console understands the following command for the AP mode:
 
 
 # Building and Flashing
-To build this binary you download and install the esp-open-sdk (https://github.com/pfalcon/esp-open-sdk). The software was developed and tested usinfg NONOS SDK v2.1. Make sure, you can compile and download the included "blinky" example.
+To build this binary you download and install the esp-open-sdk (https://github.com/pfalcon/esp-open-sdk). The software was developed and tested usinfg NONOS SDK v2.2. Make sure, you can compile and download the included "blinky" example.
 
 Then download this source tree in a separate directory and adjust the BUILD_AREA variable in the Makefile and any desired options in user/user_config.h. Build the esp_wifi_repeater firmware with "make". "make flash" flashes it onto an esp8266.
 
