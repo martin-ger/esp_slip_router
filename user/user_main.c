@@ -47,6 +47,8 @@ uint32_t g_bit_rate;
 
 uint64_t Bytes_in, Bytes_out;
 
+static os_timer_t ptimer;
+
 // Similar to strtok
 int ICACHE_FLASH_ATTR parse_str_into_tokens(char *str, char **tokens, int max_tokens)
 {
@@ -607,7 +609,14 @@ static void ICACHE_FLASH_ATTR tcp_client_connected_cb(void *arg)
 }
 #endif
 
-
+#ifdef STATUS_LED
+// Timer cb function
+void ICACHE_FLASH_ATTR timer_func(void *arg)
+{
+    // Turn LED off
+    GPIO_OUTPUT_SET (STATUS_LED, 1);
+}
+#endif
 
 //-------------------------------------------------------------------------------------------------
 
@@ -664,7 +673,13 @@ int i;
 
     case EVENT_STAMODE_DISCONNECTED:
         os_printf("disconnect from ssid %s, reason %d\n", evt->event_info.disconnected.ssid, evt->event_info.disconnected.reason);
-	connected = false;
+	    connected = false;
+#ifdef STATUS_LED
+        // Stop LED-off timer
+        os_timer_disarm(&ptimer);
+        // Turn LED on when waiting
+        GPIO_OUTPUT_SET (STATUS_LED, 0);
+#endif
         break;
 
     case EVENT_STAMODE_AUTHMODE_CHANGE:
@@ -672,19 +687,26 @@ int i;
         break;
 
     case EVENT_STAMODE_GOT_IP:
-	dns_ip = dns_getserver(0);
+	    dns_ip = dns_getserver(0);
 
         os_printf("ip:" IPSTR ",mask:" IPSTR ",gw:" IPSTR ",dns:" IPSTR "\n", IP2STR(&evt->event_info.got_ip.ip), IP2STR(&evt->event_info.got_ip.mask), IP2STR(&evt->event_info.got_ip.gw), IP2STR(&dns_ip));
+ #ifdef STATUS_LED
+        // Turn LED off when ready
+        GPIO_OUTPUT_SET (STATUS_LED, 1);
+        // Start LED-off timer
+        os_timer_setfn(&ptimer, timer_func, 0);
+        os_timer_arm(&ptimer, 100, 1);
+#endif
+	    my_ip = evt->event_info.got_ip.ip;
+	    connected = true;
 
-	my_ip = evt->event_info.got_ip.ip;
-	connected = true;
-
-	// Update any predefined portmaps to the new IP addr
+	    // Update any predefined portmaps to the new IP addr
         for (i = 0; i<IP_PORTMAP_MAX; i++) {
-	  if(ip_portmap_table[i].valid) {
-	     ip_portmap_table[i].maddr = my_ip.addr;
-	  }
-	}
+	        if(ip_portmap_table[i].valid) {
+	            ip_portmap_table[i].maddr = my_ip.addr;
+	        }
+	    }
+        break;
 
         // Post a Server Start message as the IP has been acquired to Task with priority 0
 	system_os_post(user_procTaskPrio, SIG_START_SERVER, 0 );
@@ -755,6 +777,10 @@ write_to_pbuf(char c)
 {
     slipif_received_byte(&sl_netif, c);
     Bytes_out++;
+#ifdef STATUS_LED
+    // Turn LED on on traffic
+    GPIO_OUTPUT_SET (STATUS_LED, 0);
+#endif
 }
 
 static void ICACHE_FLASH_ATTR set_netif(ip_addr_t netif_ip)
@@ -814,16 +840,32 @@ char int_no = 2;
 
     Bytes_in = Bytes_out = 0;
 
+#ifdef STATUS_LED
+    // Config pin as GPIO12
+    MUX_STATUS_LED;
+
+    // Turn LED on on start
+    GPIO_OUTPUT_SET (STATUS_LED, 0);
+#endif
+
     if (config.use_ap) {
-	// Start the AP-Mode
-	wifi_set_opmode(SOFTAP_MODE);
+	    // Start the AP-Mode
+	    wifi_set_opmode(SOFTAP_MODE);
     	user_set_softap_wifi_config();
 
-	dhcps_set_DNS(&config.ap_dns);
+ #ifdef STATUS_LED
+        // Turn LED off when ready
+        GPIO_OUTPUT_SET (STATUS_LED, 1);
+        // Start LED-off timer
+        os_timer_setfn(&ptimer, timer_func, 0);
+        os_timer_arm(&ptimer, 100, 1);
+#endif
+
+	    dhcps_set_DNS(&config.ap_dns);
     } else {
-	// Start the STA-Mode
-	wifi_set_opmode(STATION_MODE);
-	user_set_station_config();
+        // Start the STA-Mode
+        wifi_set_opmode(STATION_MODE);
+        user_set_station_config();
     }
 
     system_update_cpu_freq(config.clock_speed);
@@ -851,8 +893,6 @@ char int_no = 2;
 	// enable NAT on the SLIP interface for outgoing traffic via WiFi
 	ip_napt_enable(config.ip_addr.addr, 1);
     }
-
-    wifi_status_led_install (2, PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);
 
     // Start the telnet server (TCP)
     os_printf("Starting Console TCP Server on %d port\r\n", CONSOLE_SERVER_PORT);

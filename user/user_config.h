@@ -19,7 +19,7 @@ typedef enum {SIG_DO_NOTHING=0, SIG_START_SERVER=2, SIG_SEND_DATA, SIG_CONSOLE_R
 //
 // Define this for debug output on the SoftUART (Rx GPIO 14, Tx GPIO 12)
 //
-#define DEBUG_SOFTUART      1
+//#define DEBUG_SOFTUART      1
 
 //
 // Define this to support the "scan" command for AP search
@@ -32,5 +32,12 @@ typedef enum {SIG_DO_NOTHING=0, SIG_START_SERVER=2, SIG_SEND_DATA, SIG_CONSOLE_R
 //
 #define REMOTE_CONFIG      1
 #define CONSOLE_SERVER_PORT  7777
+
+//
+// Define the GPIO of the status LED
+// If undefined, no status LED
+//
+#define STATUS_LED  2
+#define MUX_STATUS_LED {PIN_FUNC_SELECT (PERIPHS_IO_MUX_GPIO2_U, FUNC_GPIO2);}
 
 #endif

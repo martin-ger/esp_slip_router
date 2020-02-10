@@ -29,11 +29,16 @@ To get full internet access you will need aditionally a route:
 ```
 sudo route add default gw 192.168.240.1
 ```
-and a DNS server - add an appropriate entry (e.g. the one that "show" tells you on the router console) in /etc/resolv.conf, eg. by (as root):
+and a DNS server - add an appropriate entry (e.g. public DNS server) in /etc/resolv.conf, eg. by (as root):
 ```
-echo "nameserver 192.168.178.1" > /etc/resolv.conf
+echo "nameserver 9.9.9.9" > /etc/resolv.conf
 ```
 A script may help to automize this process.
+
+The status LED (default: GPIO2) indicates:
+- permanently on: not connected (initial state after boot)
+- permanently off: connected (or SoftAP active), no traffic
+- rapidly blinking: in- or outgoing traffic
 
 The default config of the router can be overwritten and persistenly saved to flash by using a console interface. This console is available via tcp port 7777 (e.g. from the host attached to the serial line - see above). 
 
@@ -42,7 +47,7 @@ The console understands the following command:
 - show [stats]: prints the current config and status
 - set ssid|pasword [value]: changes the named config parameter
 - set addr [ip-addr]: sets the IP address of the SLIP interface (default: 192.168.240.1)
-- set speed [80|160]: sets the CPU clock frequency
+- set speed [80|160]: sets the CPU clock frequency (default: 160)
 - set bitrate [bitrate]: sets the serial bitrate to a new value
 - portmap add [TCP|UDP] _external_port_ _internal_ip_ _internal_port_: adds a port forwarding (works in STA mode)
 - portmap remove [TCP|UDP] _external_port_: deletes a port forwarding

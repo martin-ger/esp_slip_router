@@ -1,5 +1,6 @@
 #include "lwip/opt.h"
 #include "lwip/sio.h"
+#include "gpio.h"
 
 #include "driver/uart.h"
 
@@ -38,6 +39,10 @@ sio_fd_t ICACHE_FLASH_ATTR sio_open(u8_t devnum) {
 void ICACHE_FLASH_ATTR sio_send(u8_t c, sio_fd_t fd) {
   Bytes_in++;
   tx_buff_enq(&c, 1);
+#ifdef STATUS_LED
+  // Turn LED on on traffic
+  GPIO_OUTPUT_SET (STATUS_LED, 0);
+#endif
 }
 
 /**
