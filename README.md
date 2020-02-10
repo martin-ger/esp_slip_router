@@ -58,7 +58,7 @@ You can also turn the sides and make the ESP to work as AP - useful e.g. if you 
 
 With a Linux-based host start the firmware on the esp, connect it via serial to USB, and use the following commands on the host:
 ```
-sudo slattach -p slip -s 115200 /dev/ttyUSB0&
+sudo slattach -L -p slip -s 115200 /dev/ttyUSB0&
 sudo ifconfig sl0 192.168.240.2 pointopoint 192.168.240.1 up mtu 1500
 sudo route add -net 192.168.4.0/24 gw 192.168.240.1
 ```
