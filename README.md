@@ -8,7 +8,7 @@ In this mode the ESP connects to the internet via an AP with ssid, password and 
 
 To connect a Linux-based host, start the firmware on the ESP, connect it via serial to USB, and use the following commands on the host:
 ```
-sudo slattach -p slip -s 115200 /dev/ttyUSB0&
+sudo slattach -L -p slip -s 115200 /dev/ttyUSB0&
 sudo ifconfig sl0 192.168.240.2 pointopoint 192.168.240.1 up mtu 1500
 ```
 now 
