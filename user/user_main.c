@@ -45,8 +45,10 @@ uint8_t remote_console_disconnect;
 
 uint32_t g_bit_rate;
 
+uint64_t Bytes_in, Bytes_out;
+
 // Similar to strtok
-int parse_str_into_tokens(char *str, char **tokens, int max_tokens)
+int ICACHE_FLASH_ATTR parse_str_into_tokens(char *str, char **tokens, int max_tokens)
 {
 char    *p;
 int     token_count = 0;
@@ -74,7 +76,7 @@ bool    in_token = false;
 }
 
 
-void console_send_response(struct espconn *pespconn)
+void ICACHE_FLASH_ATTR console_send_response(struct espconn *pespconn)
 {
     char payload[MAX_CON_SEND_SIZE+4];
     uint16_t len = ringbuf_bytes_used(console_tx_buffer);
@@ -160,7 +162,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "help") == 0)
     {
-        os_sprintf(response, "show|\r\nset [ssid|password|auto_connect|addr|addr_peer|speed|bitrate] <val>\r\n");
+        os_sprintf(response, "show [stats]|\r\nset [ssid|password|auto_connect|addr|addr_peer|speed|bitrate] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "set [use_ap|ap_ssid|ap_password|ap_channel|ap_open|ssid_hidden|max_clients|dns] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
@@ -226,12 +228,11 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
       }
 
       if (nTokens == 2 && strcmp(tokens[1], "stats") == 0) {
-/*
-	   os_sprintf(response, "%d KiB in (%d packets)\r\n%d KiB out (%d packets)\r\n", 
-			(uint32_t)(Bytes_in/1024), Packets_in, 
-			(uint32_t)(Bytes_out/1024), Packets_out);
+
+	   os_sprintf(response, "%d KiB in\r\n%d KiB out\r\n",
+         (uint32_t)(Bytes_in/1024), (uint32_t)(Bytes_out/1024));
 	   ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
-*/
+
 	   os_sprintf(response, "Free mem: %d\r\n", system_get_free_heap_size());
 	   ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 
@@ -650,7 +651,7 @@ static void ICACHE_FLASH_ATTR user_procTask(os_event_t *events)
 }
 
 /* Callback called when the connection state of the module with an Access Point changes */
-void wifi_handle_event_cb(System_Event_t *evt)
+void ICACHE_FLASH_ATTR wifi_handle_event_cb(System_Event_t *evt)
 {
 int i;
 
@@ -734,7 +735,7 @@ struct softap_config apConfig;
    wifi_softap_set_config(&apConfig);
 }
 
-LOCAL void
+LOCAL void ICACHE_FLASH_ATTR
 softuart_write_char(char c)
 {
     if (c == '\n') {
@@ -746,13 +747,14 @@ softuart_write_char(char c)
     }
 }
 
-LOCAL void
+LOCAL void ICACHE_FLASH_ATTR
 void_write_char(char c) {}
 
 LOCAL void
 write_to_pbuf(char c)
 {
     slipif_received_byte(&sl_netif, c);
+    Bytes_out++;
 }
 
 static void ICACHE_FLASH_ATTR set_netif(ip_addr_t netif_ip)
@@ -809,6 +811,8 @@ char int_no = 2;
 
     g_bit_rate = config.bit_rate;
     remote_console_disconnect = 0;
+
+    Bytes_in = Bytes_out = 0;
 
     if (config.use_ap) {
 	// Start the AP-Mode

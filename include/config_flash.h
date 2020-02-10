@@ -9,7 +9,7 @@
 #include "os_type.h"
 #include "spi_flash.h"
 
-#define FLASH_BLOCK_NO 0xc
+#define FLASH_BLOCK_NO 0x68
 
 #define MAGIC_NUMBER    0x01200583
 

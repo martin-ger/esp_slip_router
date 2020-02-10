@@ -98,7 +98,7 @@ void Softuart_EnableRs485(Softuart *s, uint8_t gpio_id)
 	os_printf("SOFTUART RS485 init done\r\n");
 }
 
-void Softuart_Init(Softuart *s, uint32_t baudrate)
+void ICACHE_FLASH_ATTR Softuart_Init(Softuart *s, uint32_t baudrate)
 {
 	//disable rs485
 	s->is_rs485 = 0;
@@ -357,7 +357,7 @@ void Softuart_Puts(Softuart *s, const char *c )
 	}
 }
 
-uint8_t Softuart_Readline(Softuart *s, char* Buffer, uint8_t MaxLen )
+uint8_t ICACHE_FLASH_ATTR Softuart_Readline(Softuart *s, char* Buffer, uint8_t MaxLen )
 {
 	uint8_t NextChar;
 	uint8_t len = 0;

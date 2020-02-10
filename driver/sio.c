@@ -8,6 +8,7 @@ extern UartDevice    UartDev;
 bool uart_poll;
 
 extern u32_t g_bit_rate;
+extern uint64_t Bytes_in, Bytes_out;
 
 /**
  * Opens a serial device for communication.
@@ -35,6 +36,7 @@ sio_fd_t ICACHE_FLASH_ATTR sio_open(u8_t devnum) {
  * @note This function will block until the character can be sent.
  */
 void ICACHE_FLASH_ATTR sio_send(u8_t c, sio_fd_t fd) {
+  Bytes_in++;
   tx_buff_enq(&c, 1);
 }
 
