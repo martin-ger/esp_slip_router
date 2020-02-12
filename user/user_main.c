@@ -164,7 +164,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
     if (strcmp(tokens[0], "help") == 0)
     {
-        os_sprintf(response, "show [stats]|\r\nset [ssid|password|auto_connect|addr|addr_peer|speed|bitrate] <val>\r\n");
+        os_sprintf(response, "show [stats]\r\nset [ssid|password|auto_connect|addr|addr_peer|speed|bitrate] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "set [use_ap|ap_ssid|ap_password|ap_channel|ap_open|ssid_hidden|max_clients|dns] <val>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
@@ -173,7 +173,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
         os_sprintf(response, "portmap [add|remove] [TCP|UDP] <ext_port> <int_addr> <int_port>\r\n");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 #ifdef ALLOW_SCANNING
-        os_sprintf(response, "|scan");
+        os_sprintf(response, "scan");
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 #endif
 	ringbuf_memcpy_into(console_tx_buffer, "\r\n", 2);
@@ -187,6 +187,8 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
       ip_addr_t i_ip;
 
       if (nTokens == 1) {
+	os_sprintf(response, "ESP SLIP Router %s (build: %s)\r\n", ESP_SLIP_ROUTER_VERSION, __TIMESTAMP__);
+	ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
         os_sprintf(response, "SLIP: IP: " IPSTR " PeerIP: " IPSTR "\r\n", IP2STR(&config.ip_addr), IP2STR(&config.ip_addr_peer));
         ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
 	if (config.use_ap) {
