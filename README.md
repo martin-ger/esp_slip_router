@@ -58,6 +58,8 @@ The console understands the following command:
 - unlock [password]: unlocks the config, requires password of the network AP
 - scan: does a scan for APs
 
+If you want to enter non-ASCII or special characters you can use HTTP-style hex encoding (e.g. "My%20AccessPoint") or, only on the CLI, as shortcut C-style quotes with backslash (e.g. "My\ AccessPoint"). Both methods will result in a string "My AccessPoint".
+
 # Usage as AP
 You can also turn the sides and make the ESP to work as AP - useful e.g. if you want to connect other devices to a RasPi that has no WiFi interface:
 

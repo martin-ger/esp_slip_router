@@ -52,29 +52,77 @@ static os_timer_t ptimer;
 // Similar to strtok
 int ICACHE_FLASH_ATTR parse_str_into_tokens(char *str, char **tokens, int max_tokens)
 {
-char    *p;
-int     token_count = 0;
-bool    in_token = false;
+    char *p, *q, *end;
+    int token_count = 0;
+    bool in_token = false;
 
-   p = str;
+    // preprocessing
+    for (p = q = str; *p != 0; p++)
+    {
+        if (*(p) == '%' && *(p + 1) != 0 && *(p + 2) != 0)
+        {
+            // quoted hex
+            uint8_t a;
+            p++;
+            if (*p <= '9')
+                a = *p - '0';
+            else
+                a = toupper(*p) - 'A' + 10;
+            a <<= 4;
+            p++;
+            if (*p <= '9')
+                a += *p - '0';
+            else
+                a += toupper(*p) - 'A' + 10;
+            *q++ = a;
+        }
+        else if (*p == '\\' && *(p + 1) != 0)
+        {
+            // next char is quoted - just copy it, skip this one
+            *q++ = *++p;
+        }
+        else if (*p == 8)
+        {
+            // backspace - delete previous char
+            if (q != str)
+                q--;
+        }
+        else if (*p <= ' ')
+        {
+            // mark this as whitespace
+            *q++ = 0;
+        }
+        else
+        {
+            *q++ = *p;
+        }
+    }
 
-   while (*p != 0) {
-	if (*p <= ' ') {
-	   if (in_token) {
-		*p = 0;
-		in_token = false;
-	   }
-	} else {
-	   if (!in_token) {
-		tokens[token_count++] = p;
-		if (token_count == max_tokens)
-		   return token_count;
-		in_token = true;
-	   }  
-	}
-	p++;
-   }
-   return token_count;
+    end = q;
+    *q = 0;
+
+    // cut into tokens
+    for (p = str; p != end; p++)
+    {
+        if (*p == 0)
+        {
+            if (in_token)
+            {
+                in_token = false;
+            }
+        }
+        else
+        {
+            if (!in_token)
+            {
+                tokens[token_count++] = p;
+                if (token_count == max_tokens)
+                    return token_count;
+                in_token = true;
+            }
+        }
+    }
+    return token_count;
 }
 
 
