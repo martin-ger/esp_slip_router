@@ -110,4 +110,5 @@ As UART0, the HW UART of the esp8266 is busy with the SLIP protocoll, it cannot 
 
 # Known Issues
 - Speed: 115200 is the max baudrate on many USB ports and the current standard speed. This is SLOW compared to the typical WiFi speeds. This means connectivity via the serial line works, even basic web browsing, but the speed is what you can expect from about 100kB/s... But IoT applications typically use much less bandwidth, also terminal access is fine.
+- A configuration to enable hardware flow control (RTS/CTS) is available in include/driver/uart.h. Sassa0 recompiled with UART_HW_RTS 1 and UART_HW_CTS 1. In that case slattach does not work anymore with it, even with removing the -L argument, however it does work in the Amiga with hardware flow control enabled (known to work with up to 57600 bauds). See issue #16.
 - If you are just interested in the SLIP interface as a basis for you own projects, you might have a look into the user_simple directory. It contains a minimal version of the router with no config console.
