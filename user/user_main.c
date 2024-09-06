@@ -902,6 +902,9 @@ LOCAL void ht_ATD(uint8_t i) {
     if(h_state.cmdbuf[ni+i] < 48 || h_state.cmdbuf[ni+i] > 57) break;
     ni++;
   }
+  char connstr[15];
+  snprintf(connstr, 15, S_CONN, config.bit_rate);
+  h_print(connstr);
   h_state.call_active=true;
   h_state.cmdmode=false;
 }

@@ -16,9 +16,6 @@ typedef struct {
 	bool cmdmode; // in command mode, default: true
 	bool in_AT; // input was AT, now parsing commands
 
-	bool in_I; // command was I
-	bool in_D; // command was D[PT]
-
 	bool in_escape; // not in command mode, last character was +
 	uint8_t n_plus; // consecutive + inputs
 
