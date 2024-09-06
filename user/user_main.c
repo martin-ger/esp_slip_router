@@ -19,6 +19,7 @@
 
 #include "ringbuf.h"
 #include "user_config.h"
+#include "hayes.h"
 #include "config_flash.h"
 
 #define user_procTaskPrio        0
@@ -35,6 +36,9 @@ struct netif sl_netif;
 
 // Holds the system wide configuration
 sysconfig_t config;
+
+// Holds the Hayes modem emulation state
+hayes_t h_state;
 
 static ringbuf_t console_rx_buffer, console_tx_buffer;
 
@@ -822,9 +826,282 @@ softuart_write_char(char c)
 LOCAL void ICACHE_FLASH_ATTR
 void_write_char(char c) {}
 
-LOCAL void
-write_to_pbuf(char c)
-{
+// Hayes-compatible wrapper
+/* TODO / To implement / notes
+ * ATI1-7 commands
+ * honour verbose/quiet modes
+ * verbose mode defaults to enabled; disabled it should just output numbers
+ * quiet mode defaults to disabled; enabled it should output nothing in response
+ * configuration via AT& commands as an alternative to telnet
+ * ATZ to reset
+ * persist settings to nvram
+ * it would be cool if autodetecting baud rate worked but that might be impossible
+ * 
+ * command reference used: https://support.usr.com/support/756/756-ug/six.html
+ */
+LOCAL void h_init() {
+  h_state = (hayes_t){0};
+  h_state.cmdmode = true;
+  h_state.verbose = true;
+  h_state.echo = true;
+}
+
+LOCAL void h_echo(char c) {
+  if(!h_state.echo) return;
+  // LF is swallowed if last character was CR
+  if(c == LF && h_state.last_chr == CR) return;
+  uart_tx_one_char(UART0, c);
+}
+
+LOCAL void h_print(char s[]) {
+  uint16_t i=0;
+  uint16_t sz=os_strlen(s); // exclude NUL
+  while(i<sz) {
+    uart_tx_one_char(UART0, s[i++]);
+  }
+  uart_tx_one_char(UART0, CR);
+}
+
+LOCAL void h_notimpl() {
+  h_print(S_NOTIMPL);
+}
+
+LOCAL void h_ok() {
+  h_print(S_OK);
+}
+
+// AT command implementations
+// Commands that take an argument will return a bool indicating if that
+//  argument was used, as boolean commands can be shortened to just their
+//  letter if the desired effect is to set them to false.
+// Commands that will terminate the command parse process are prefixed 'ht_'
+LOCAL void hz_ATA() {
+  return;
+}
+LOCAL bool h_ATA(char a) {
+  // i don't think this can support incoming calls but whatever
+  // here for compatibility.
+  return a == '0';
+}
+LOCAL void hz_ATD() {
+  h_print(S_ERR);
+}
+LOCAL void ht_ATD(uint8_t i) {
+  if(h_state.cmdbuf[i] == 'L') {
+    // redial last
+    h_state.call_active=true;
+    h_state.cmdmode=false;
+    return;
+  }
+  // At the moment this is basically just wasted cycles
+  // Eventually, maybe there will be a reason to know the dialled number
+  // This also can benefit if we want to support commands after ATD
+  uint8_t ni=0;
+  if(h_state.cmdbuf[i] == 'P' || h_state.cmdbuf[i] == 'T') ni++;
+  while(ni+i<h_state.cmdbuf_c) {
+    if(h_state.cmdbuf[ni+i] < 48 || h_state.cmdbuf[ni+i] > 57) break;
+    ni++;
+  }
+  h_state.call_active=true;
+  h_state.cmdmode=false;
+}
+LOCAL bool h_ATE(char a) {
+  if(a != '0' && a != '1') {
+    h_state.echo = false;
+    return false;
+  }
+  if(a == '0') {
+    h_state.echo = false;
+  } else {
+    h_state.echo = true;
+  }
+  return true;
+}
+LOCAL void hz_ATE() {
+  h_ATE('0');
+}
+LOCAL void h_ATI() {
+  h_print(S_ERR);
+}
+LOCAL void ht_ATI(uint8_t i) {
+  if(h_state.cmdbuf[i] < 48 || h_state.cmdbuf[i] > 57) {
+    h_print(S_ERR);
+    return;
+  }
+  uint8_t sel = h_state.cmdbuf[i] - 48;
+  if(i+1 < h_state.cmdbuf_c && h_state.cmdbuf[i+1] > 47 && h_state.cmdbuf[i+1] < 58) {
+    sel *= 10;
+    sel += h_state.cmdbuf[i+1] - 48;
+  }
+  switch(sel) {
+    case 0:
+      h_print("PUPY");
+      break;
+    case 9:
+      h_notimpl();
+      return;
+    case 12:
+      break;
+    default:
+      h_print(S_ERR);
+      return;
+  }
+  h_print(S_OK);
+}
+LOCAL void ht_ATH() {
+  h_print(S_OK);
+}
+LOCAL void ht_ATO() {
+  if(!h_state.call_active) h_print(S_NOCAR);
+  else h_state.cmdmode=false;
+}
+LOCAL bool h_ATQ(char a) {
+  if(a != '0' && a != '1') {
+    h_state.quiet = false;
+    return false;
+  }
+  if(a == '0') {
+    h_state.quiet = false;
+  } else {
+    h_state.quiet = true;
+  }
+  return true;
+}
+LOCAL void hz_ATQ() {
+  h_ATQ('0');
+}
+LOCAL bool h_ATV(char a) {
+  if(a != '0' && a != '1') {
+    h_state.verbose = false;
+    return false;
+  }
+  if(a == '0') {
+    h_state.verbose = false;
+  } else {
+    h_state.verbose = true;
+  }
+  return true;
+}
+LOCAL void hz_ATV() {
+  h_ATV('0');
+}
+LOCAL void ht_ATZ() {
+  system_restart();
+  while(true);
+}
+
+// TODO: This should probably be a more traditional command parser/lexer/whatever
+// currently commands that can have more than one character of input are
+//  treated as terminating commands, so that implementing them is easier
+//  in the future this could just be solved by returning an int of how many
+//  characters were consumed, which is then added to i
+LOCAL void h_cmdparse() {
+  if(h_state.cmdbuf_c == 0) {
+    h_ok();
+    return;
+  }
+  uint8_t i=0;
+  while(i<h_state.cmdbuf_c) {
+    switch(h_state.cmdbuf[i]) {
+      case 'A':
+        if(i+1 == h_state.cmdbuf_c) hz_ATA();
+        else if(!h_ATA(h_state.cmdbuf[++i])) i--;
+        break;
+      case 'D':
+        if(i+1 == h_state.cmdbuf_c) hz_ATD();
+        else ht_ATD(++i);
+        return;
+      case 'E':
+        if(i+1 == h_state.cmdbuf_c) hz_ATE();
+        else if(!h_ATE(h_state.cmdbuf[++i])) i--;
+        break;
+      case 'H':
+        ht_ATH();
+        return;
+      case 'I':
+        if(i+1 == h_state.cmdbuf_c) h_ATI();
+        else ht_ATI(++i);
+        return;
+      case 'O':
+        ht_ATO();
+        return;
+      case 'Q':
+        if(i+1 == h_state.cmdbuf_c) hz_ATQ();
+        else if(!h_ATQ(h_state.cmdbuf[++i])) i--;
+        break;
+      case 'V':
+        if(i+1 == h_state.cmdbuf_c) hz_ATV();
+        else if(!h_ATV(h_state.cmdbuf[++i])) i--;
+        break;
+      case 'Z':
+        ht_ATZ();
+        return;
+    }
+    i++;
+  }
+  h_ok();
+}
+
+LOCAL void h_recv(char c) {
+  h_echo(c);
+  if(h_state.in_AT) {
+    if(c == CR) {
+      h_cmdparse();
+      h_state.in_AT=false;
+      h_state.cmdbuf_c=0;
+    } else if(h_state.cmdbuf_c == 40) {
+      // buffer overflow prevention
+      h_print(S_ERR);
+      // since the AT command spec dictates a maximum command length of 40,
+      //  we just allocate that many bytes and use a cursor
+      h_state.in_AT=false;
+      h_state.cmdbuf_c=0;
+    } else {
+      h_state.cmdbuf[h_state.cmdbuf_c++]=c;
+    }
+  } else {
+    if(c == 'T' && h_state.last_chr == 'A')
+      h_state.in_AT=true;
+  }
+  h_state.last_chr=c;
+}
+
+// Returns true if input was handled
+LOCAL bool h_handler(char c) {
+  if(h_state.cmdmode) {
+    h_recv(c);
+    return true;
+  }
+  if(c == ESC_CMD) {
+    if(h_state.in_escape && h_state.n_plus == 2) {
+      h_state.in_escape=false;
+      h_state.n_plus=0;
+      h_state.cmdmode=true;
+      h_print(S_OK);
+      return true;
+    }
+    if(h_state.in_escape) {
+      h_state.n_plus++;
+      return true;
+    }
+    h_state.in_escape=true;
+    h_state.n_plus++;
+    return true;
+  }
+  if(h_state.in_escape) {
+    // Replay +'s - this wasn't an escape.
+    h_state.in_escape=false;
+    while(h_state.n_plus>0) {
+      slipif_received_byte(&sl_netif, ESC_CMD);
+      Bytes_out++;
+      h_state.n_plus--;
+    }
+  }
+  return false;
+}
+
+LOCAL void write_to_pbuf(char c) {
+    if(h_handler(c)) return;
     slipif_received_byte(&sl_netif, c);
     Bytes_out++;
 #ifdef STATUS_LED
@@ -842,11 +1119,11 @@ struct netif *nif;
 
 	nif->napt = 1;
 }
-
 //-------------------------------------------------------------------------------------------------
 //Init function
 void ICACHE_FLASH_ATTR  user_init()
 {
+  h_init();
 ip_addr_t netmask;
 ip_addr_t gw;
 
@@ -964,6 +1241,8 @@ char int_no = 2;
 
     // Put the connection in accept mode
     espconn_accept(pCon);
+
+    h_ok();
 
     //Start our user task
     system_os_task(user_procTask, user_procTaskPrio,user_procTaskQueue, user_procTaskQueueLen);
