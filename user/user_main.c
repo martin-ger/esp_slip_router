@@ -555,7 +555,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
             if (strcmp(tokens[1],"dns") == 0)
             {
                 config.ap_dns.addr = ipaddr_addr(tokens[2]);
-                os_sprintf(response, "DNS address set to %d.%d.%d.%d/24\r\n", 
+                os_sprintf(response, "DNS address set to %d.%d.%d.%d/24\r\n",
 			IP2STR(&config.ap_dns));
                 ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
@@ -565,7 +565,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 	    {
 		uint16_t speed = atoi(tokens[2]);
 		bool succ = system_update_cpu_freq(speed);
-		if (succ) 
+		if (succ)
 		    config.clock_speed = speed;
 		os_sprintf(response, "Clock speed update %s\r\n",
 		  succ?"successful":"failed");
@@ -576,7 +576,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
             if (strcmp(tokens[1],"addr") == 0)
             {
                 config.ip_addr.addr = ipaddr_addr(tokens[2]);
-                os_sprintf(response, "IP address set to %d.%d.%d.%d/24\r\n", 
+                os_sprintf(response, "IP address set to %d.%d.%d.%d/24\r\n",
 			IP2STR(&config.ip_addr));
                 ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
@@ -585,7 +585,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
             if (strcmp(tokens[1],"addr_peer") == 0)
             {
                 config.ip_addr_peer.addr = ipaddr_addr(tokens[2]);
-                os_sprintf(response, "IP peer address set to %d.%d.%d.%d/24\r\n", 
+                os_sprintf(response, "IP peer address set to %d.%d.%d.%d/24\r\n",
 			IP2STR(&config.ip_addr_peer));
                 ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
                 goto command_handled;
@@ -657,7 +657,7 @@ static void ICACHE_FLASH_ATTR tcp_client_connected_cb(void *arg)
 
     ringbuf_reset(console_rx_buffer);
     ringbuf_reset(console_tx_buffer);
-    
+
     os_sprintf(payload, "CMD>");
     espconn_sent(pespconn, payload, os_strlen(payload));
 }
@@ -792,7 +792,7 @@ void ICACHE_FLASH_ATTR user_set_softap_wifi_config(void)
 struct softap_config apConfig;
 
    wifi_softap_get_config(&apConfig); // Get config first.
-    
+
    os_memset(apConfig.ssid, 0, 32);
    os_sprintf(apConfig.ssid, "%s", config.ap_ssid);
    os_memset(apConfig.password, 0, 64);
@@ -836,7 +836,7 @@ void_write_char(char c) {}
  * ATZ to reset
  * persist settings to nvram
  * it would be cool if autodetecting baud rate worked but that might be impossible
- * 
+ *
  * command reference used: https://support.usr.com/support/756/756-ug/six.html
  */
 LOCAL void h_init() {
@@ -903,7 +903,7 @@ LOCAL void ht_ATD(uint8_t i) {
     ni++;
   }
   char connstr[15];
-  snprintf(connstr, 15, S_CONN, config.bit_rate);
+  os_sprintf(connstr, S_CONN, config.bit_rate);
   h_print(connstr);
   h_state.call_active=true;
   h_state.cmdmode=false;
@@ -952,6 +952,7 @@ LOCAL void ht_ATI(uint8_t i) {
   h_print(S_OK);
 }
 LOCAL void ht_ATH() {
+  h_state.call_active=false;
   h_print(S_OK);
 }
 LOCAL void ht_ATO() {
@@ -1133,7 +1134,7 @@ ip_addr_t gw;
 // This interface number 2 is just to avoid any confusion with the WiFi-Interfaces (0 and 1)
 // Should be different in the name anyway - just to be sure
 // Matches the number in sio_open()
-char int_no = 2; 
+char int_no = 2;
 
     connected = false;
     console_rx_buffer = ringbuf_new(80);
@@ -1141,7 +1142,7 @@ char int_no = 2;
 
 #ifdef DEBUG_SOFTUART
     // Initialize software uart
-    Softuart_SetPinRx(&softuart,14);	
+    Softuart_SetPinRx(&softuart,14);
     Softuart_SetPinTx(&softuart,12);
     Softuart_Init(&softuart,19200);
 
