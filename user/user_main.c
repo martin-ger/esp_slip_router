@@ -875,6 +875,7 @@ LOCAL void ICACHE_FLASH_ATTR h_init() {
     modem.state.on_hook = true;
   else {
     modem.state.on_hook = false;
+    modem.state.in_call = true;
     modem.state.online = true;
   }
 }
@@ -1419,8 +1420,11 @@ LOCAL void ICACHE_FLASH_ATTR h_recv(char c) {
       modem.state.in_cmd = false;
       modem.state.l_cmd_i = modem.state.cmd_i;
       modem.state.cmd_i = 0;
-    } else if(c == REG_BS) {
+    } else if(c == REG_BS && modem.state.cmd_i>0) {
       modem.state.cmd_i--;
+      if(modem.state.cmd_i>0)
+        modem.state.l_chr = modem.state.cmdbuf[modem.state.cmd_i];
+      return; // Skip setting l_chr
     } else if(modem.state.cmd_i == 40) {
       h_result(ERROR);
       modem.state.in_cmd = false;
