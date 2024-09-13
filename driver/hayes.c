@@ -81,7 +81,7 @@ LOCAL void ICACHE_FLASH_ATTR h_print(char s[]) {
   uart_tx_one_char(UART0, REG_CR);
 }
 LOCAL void h_print_i(uint8_t n) {
-  char s[3]; // uint8_t can at most be 255
+  char s[4]; // uint8_t can at most be 255, + NUL
   os_sprintf(s, "%u", n);
   h_print(s);
 }
@@ -626,10 +626,9 @@ bool ICACHE_FLASH_ATTR h_handler(char c, void (*slip_rx)(struct netif*, u8_t), s
   }
   if(modem.state.in_esc) {
     modem.state.in_esc = false;
-    while(modem.state.n_escs>0) {
+    while(modem.state.n_escs-->0) {
       slip_rx(slip_if, REG_ESC);
-      bytes_out++;
-      modem.state.n_escs--;
+      (*bytes_out)++;
     }
   }
   return false;
