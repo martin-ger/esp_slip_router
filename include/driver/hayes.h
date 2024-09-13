@@ -1,6 +1,20 @@
 #ifndef _HAYES_H_
 #define _HAYES_H_
+// c_types needed for uint8_t, etc.
 #include "c_types.h"
+// osapi needed for os_sprintf
+#include "osapi.h"
+// needed as prerequisite for config_flash
+#include "lwip/ip_addr.h"
+#include "lwip/ip.h"
+// netif needed for netif type
+#include "lwip/netif.h"
+// slipif needed for replaying received characters to SLIP interface
+#include "netif/slipif.h"
+// uart needed for transmitting data to DTE
+#include "driver/uart.h"
+// config_flash needed for load/save/sysconfig_p
+#include "config_flash.h"
 
 #define BS 8
 #define CR 13
@@ -62,7 +76,7 @@ typedef struct {
   
   bool on_hook:1; // line is on-hook or not. cosmetic.
   bool in_call:1; // call is active or not. cosmetic.
-  char cmdbuf[40];  // since char is apparently 0-127, this could theoretically
+  char cmdbuf[40];  // since char is 0-127, this could theoretically
                     // be shortened, but i am not that insane.
   unsigned int cmd_i:6; // 0-63
   unsigned int l_cmd_i:6;
@@ -73,4 +87,8 @@ typedef struct {
   h_prefs_t prefs;
   h_state_t state;
 } hayes_t;
+
+void h_init(sysconfig_p);
+bool h_handler(char, void (*)(struct netif*, u8_t), struct netif*, uint64_t*);
+void h_result(hayes_result_t);
 #endif
