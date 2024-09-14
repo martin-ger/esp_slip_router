@@ -1,17 +1,32 @@
 #include "driver/hayes.h"
 
-// Hayes-compatible wrapper
-/* TODO / To implement / notes
- * ATI1-7 commands
- * honour verbose/quiet modes
- * verbose mode defaults to enabled; disabled it should just output numbers
- * quiet mode defaults to disabled; enabled it should output nothing in response
- * configuration via AT& commands as an alternative to telnet
- * ATZ to reset
- * persist settings to nvram
- * it would be cool if autodetecting baud rate worked but that might be impossible
+/*
+ * This aims to be as standard as possible a wrapper for the Hayes AT command
+ * set, originally used in the Hayes SmartModem, but due to its reuse in other
+ * modems, became retroactively ratified as a standard in ITU V.25ter, later
+ * renamed V.250
+ * This implementation/emulator follows the spec as closely as reasonably
+ * possible, per the referenced texts linked below.
  *
- * command reference used: https://support.usr.com/support/756/756-ug/six.html
+ * TODO:
+ * * ATI0-11
+ * * AT&F0
+ * * AT+W config commands
+ * * Persisting settings
+ *
+ * Other expected functionality not yet available, or impossible/unreasonable
+ * to implement:
+ * * Baud rate auto-detection
+ *    This is normally accomplished by "training" against the AT precursor
+ *    but doesn't appear so easy to accomplish on the ESP8266
+ * * Phonebook
+ *    This is normally provided by a Hayes-compatible modem in order to make
+ *    life for the user easier, but does not seem worthwhile implementing here
+ *
+ * References used while building this emulator:
+ * https://en.wikipedia.org/wiki/Hayes_AT_command_set
+ * https://support.usr.com/support/756/756-ug/six.html
+ * https://github.com/86Box/86Box/blob/master/src/network/net_modem.c
  */
 
 sysconfig_p config;
@@ -524,6 +539,7 @@ LOCAL void ICACHE_FLASH_ATTR ht_ATZ() {
   while(true);
 }
 
+// AT&...
 LOCAL void ht_AMP_F(char c) {
   // AT&Fn - Reset to factory settings
   if(c != '0') {
@@ -533,11 +549,9 @@ LOCAL void ht_AMP_F(char c) {
   ht_ATZ();
 }
 
-// TODO: This should probably be a more traditional command parser/lexer/whatever
-// currently commands that can have more than one character of input are
-//  treated as terminating commands, so that implementing them is easier
-//  in the future this could just be solved by returning an int of how many
-//  characters were consumed, which is then added to i
+// AT+...
+// V.250-compliant commands
+
 LOCAL void ICACHE_FLASH_ATTR h_cmdparse_amp(uint8_t i) {
   uint8_t taken=0;
   switch(modem.state.cmdbuf[i]) {
