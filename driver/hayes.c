@@ -524,11 +524,38 @@ LOCAL void ICACHE_FLASH_ATTR ht_ATZ() {
   while(true);
 }
 
+LOCAL void ht_AMP_F(char c) {
+  // AT&Fn - Reset to factory settings
+  if(c != '0') {
+    h_result(ERROR);
+    ht_ATZ();
+  }
+  ht_ATZ();
+}
+
 // TODO: This should probably be a more traditional command parser/lexer/whatever
 // currently commands that can have more than one character of input are
 //  treated as terminating commands, so that implementing them is easier
 //  in the future this could just be solved by returning an int of how many
 //  characters were consumed, which is then added to i
+LOCAL void ICACHE_FLASH_ATTR h_cmdparse_amp(uint8_t i) {
+  uint8_t taken=0;
+  switch(modem.state.cmdbuf[i]) {
+    case 'F':
+      if(i+1 == modem.state.cmd_i) h_result(ERROR);
+      else ht_AMP_F(modem.state.cmdbuf[++taken+i]);
+      return;
+    default:
+      return ++taken;
+  }
+}
+LOCAL void ICACHE_FLASH_ATTR h_cmdparse_plus(uint8_t i) {
+  uint8_t taken=0;
+  switch(modem.state.cmdbuf[i]) {
+    default:
+      return ++taken;
+  }
+}
 LOCAL void ICACHE_FLASH_ATTR h_cmdparse() {
   if(modem.state.cmd_i==0) {
     h_result(OKAY);
@@ -589,6 +616,10 @@ LOCAL void ICACHE_FLASH_ATTR h_cmdparse() {
       case 'Z':
         ht_ATZ();
         return;
+      case '&':
+        if(i+1 == modem.state.cmd_i) h_result(ERROR);
+        else i+=h_cmdparse_amp(++i);
+        break;
       case '$':
         if(i>0 && modem.state.cmdbuf[i-1] == '&') ht_ATAMPDOLLAR();
         else ht_ATDOLLAR();
