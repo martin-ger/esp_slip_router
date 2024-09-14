@@ -3,7 +3,7 @@
 
 typedef enum {SIG_DO_NOTHING=0, SIG_START_SERVER=2, SIG_SEND_DATA, SIG_CONSOLE_RX, SIG_CONSOLE_TX } USER_SIGNALS;
 
-#define	ESP_SLIP_ROUTER_VERSION "V1.1.1hayes1"
+#define	ESP_SLIP_ROUTER_VERSION "V1.1.1"
 
 #define WIFI_SSID            "ssid"
 #define WIFI_PASSWORD        "password"

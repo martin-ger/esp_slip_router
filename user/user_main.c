@@ -827,7 +827,8 @@ softuart_write_char(char c)
 LOCAL void ICACHE_FLASH_ATTR
 void_write_char(char c) {}
 
-LOCAL void write_to_pbuf(char c)
+LOCAL void
+write_to_pbuf(char c)
 {
 #ifdef ENABLE_HAYES
     if(h_handler(c, slipif_received_byte, &sl_netif, &Bytes_out)) return;
