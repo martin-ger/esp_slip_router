@@ -16,6 +16,10 @@
 // config_flash needed for load/save/sysconfig_p
 #include "config_flash.h"
 
+#ifndef HAYES_CMD_MODE_AT_BOOT
+#define HAYES_CMD_MODE_AT_BOOT true
+#endif
+
 #define BS 8
 #define CR 13
 #define LF 10

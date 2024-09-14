@@ -41,8 +41,8 @@ typedef enum {SIG_DO_NOTHING=0, SIG_START_SERVER=2, SIG_SEND_DATA, SIG_CONSOLE_R
 //
 // HAYES_CMD_MODE_AT_BOOT also controls what the default behaviour is.
 //
-#define ENABLE_HAYES  1
-#define HAYES_CMD_MODE_AT_BOOT true
+//#define ENABLE_HAYES  1
+//#define HAYES_CMD_MODE_AT_BOOT true
 
 //
 // Define the GPIO of the status LED

@@ -20,10 +20,6 @@
 #include "ringbuf.h"
 #include "user_config.h"
 
-#ifndef ENABLE_HAYES
-#define ENABLE_HAYES
-#endif
-
 #ifdef ENABLE_HAYES
 #include "driver/hayes.h"
 #endif
