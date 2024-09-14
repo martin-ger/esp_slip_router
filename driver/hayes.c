@@ -72,12 +72,14 @@ LOCAL void ICACHE_FLASH_ATTR h_echo(char c) {
   if(c == REG_LF && modem.state.l_chr == REG_CR) return;
   uart_tx_one_char(UART0, c);
 }
-LOCAL void ICACHE_FLASH_ATTR h_print(char s[]) {
+LOCAL void ICACHE_FLASH_ATTR h_print_nocr(char s[]) {
   uint16_t i=0;
   uint16_t sz=os_strlen(s);
-  while(i<sz) {
+  while(i<sz)
     uart_tx_one_char(UART0, s[i++]);
-  }
+}
+LOCAL void ICACHE_FLASH_ATTR h_print(char s[]) {
+  h_print_nocr(s);
   uart_tx_one_char(UART0, REG_CR);
 }
 LOCAL void h_print_i(uint8_t n) {
@@ -304,6 +306,8 @@ LOCAL void ICACHE_FLASH_ATTR ht_ATI(uint8_t i) {
     return;
   }
   uint8_t method = h_multi_parse_num(i);
+  char outstr[60];
+  uint8_t iter=0;
   switch(method) {
     case 0:
       // ATI0 - Model string
@@ -366,6 +370,31 @@ LOCAL void ICACHE_FLASH_ATTR ht_ATI(uint8_t i) {
       // Signal/noise levels, echo loss, timing, up/down/speed shifts
       // V.90 status
       break;
+    case 19:
+      // ATI19 - Deliberately high
+      // Outputs the current modem state.
+      os_sprintf(outstr, "E%uQ%uV%uX%u",
+                 modem.prefs.echo,
+                 modem.prefs.quiet,
+                 modem.prefs.verbose,
+                 modem.prefs.report);
+      h_print(outstr);
+      h_print("cmdbuf:");
+      while(iter<40) {
+        os_sprintf(outstr, "%u: %c (%u, %x)    ", iter, modem.state.cmdbuf[iter], modem.state.cmdbuf[iter], modem.state.cmdbuf[iter]);
+        h_print_nocr(outstr);
+        if(iter++%4==0)
+          uart_tx_one_char(UART0, REG_CR);
+      }
+      uart_tx_one_char(UART0, REG_CR);
+      os_sprintf(outstr, "cmdbuf index %u, last %u, lchr %c",
+                 modem.state.cmd_i, modem.state.l_cmd_i,
+                 modem.state.l_chr);
+      h_print(outstr);
+      os_sprintf(outstr, "online=%u on-hook=%u in-cmd=%u n-escs=%u",
+                 modem.state.online, modem.state.on_hook,
+                 modem.state.in_cmd, modem.state.n_escs);
+      h_print(outstr);
     default:
       h_result(ERROR);
       return;
@@ -435,9 +464,10 @@ LOCAL uint8_t ICACHE_FLASH_ATTR h_ATS(uint8_t i) {
     h_result(ERROR);
     return 40-i;
   }
+  taken += reg>9? 2 : 1;
   // Parse intent
   char buf[20]; // can't declare inside a switch block
-  switch(modem.state.cmdbuf[i+taken]) {
+  switch(modem.state.cmdbuf[i+taken++]) {
     case '?':
       // ATSn? - Interrogate the register's contents
       if((reg>1 && reg<6) || (reg>21 && reg<24))
@@ -447,16 +477,17 @@ LOCAL uint8_t ICACHE_FLASH_ATTR h_ATS(uint8_t i) {
         os_sprintf(buf, S_REG_I, reg, modem.prefs.regs[reg]);
       h_print(buf);
       h_result(OKAY);
+      break;
     case '=':
       // ATSn=v - Set a register to a value
       if((reg>1 && reg<6) || (reg>21 && reg<24))
-        modem.prefs.regs[reg] = modem.state.cmdbuf[++taken+i];
-      else modem.prefs.regs[reg] = h_multi_parse_num(++taken+i);
+        modem.prefs.regs[reg] = modem.state.cmdbuf[taken+i];
+      else modem.prefs.regs[reg] = h_multi_parse_num(taken+i);
       h_result(OKAY);
       break;
     default:
       h_result(ERROR);
-      return 40-i; // Prevent further command execution
+      return 40-(i+taken); // Prevent further command execution
   }
   return taken;
 }
@@ -565,7 +596,6 @@ LOCAL void ICACHE_FLASH_ATTR h_cmdparse() {
     }
     i++;
   }
-  h_result(OKAY);
 }
 LOCAL void ICACHE_FLASH_ATTR h_recv(char c) {
   h_echo(c);
