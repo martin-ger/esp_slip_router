@@ -97,6 +97,11 @@ The console understands the following command for the AP mode:
 - set addr_peer [ip-addr]: sets the IP address of the peer of the SLIP interface that is also the default gateway (default: 192.168.240.2)
 - set dns [ip-addr]: sets the IP address of the DNS server that is distributed via DHCP (default: 192.168.240.2)
 
+# Hayes-compatible Modem Mode
+
+There is an option to have the SLIP router act as a Hayes-compatible modem, enabling you to use it as a modem on, for example, early Windows releases as a serial modem (with an appropriate transciever).
+
+To use this, simply uncomment `#define ENABLE_HAYES 1` in the `user/user_config.h` file. The modem can be configured to boot up into an already-dialled state by uncommenting `#define HAYES_CMD_MODE_AT_BOOT true` and changing `true` to `false`.
 
 # Building and Flashing
 To build this binary you download and install the esp-open-sdk (https://github.com/pfalcon/esp-open-sdk). The software was developed and tested usinfg NONOS SDK v2.2. Make sure, you can compile and download the included "blinky" example.
