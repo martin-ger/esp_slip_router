@@ -552,7 +552,7 @@ LOCAL void ht_AMP_F(char c) {
 // AT+...
 // V.250-compliant commands
 
-LOCAL void ICACHE_FLASH_ATTR h_cmdparse_amp(uint8_t i) {
+LOCAL uint8_t ICACHE_FLASH_ATTR h_cmdparse_amp(uint8_t i) {
   uint8_t taken=0;
   switch(modem.state.cmdbuf[i]) {
     case 'F':
@@ -563,7 +563,7 @@ LOCAL void ICACHE_FLASH_ATTR h_cmdparse_amp(uint8_t i) {
       return ++taken;
   }
 }
-LOCAL void ICACHE_FLASH_ATTR h_cmdparse_plus(uint8_t i) {
+LOCAL uint8_t ICACHE_FLASH_ATTR h_cmdparse_plus(uint8_t i) {
   uint8_t taken=0;
   switch(modem.state.cmdbuf[i]) {
     default:
