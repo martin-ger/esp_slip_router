@@ -112,6 +112,17 @@ The source tree includes a binary version of the liblwip_open plus the required 
 
 If you want to use the precompiled binaries you can flash them with "esptool.py --port /dev/ttyUSB0 write_flash -fs 32m 0x00000 firmware/0x00000.bin 0x10000 firmware/0x10000.bin" (use -fs 8m for an ESP-01)
 
+## Building with Docker
+If you don't want to install the esp-open-sdk yourself (it is hard to build on current Linux distributions), you can use the prebuilt Docker image martinfger/iot_devel:1.0 that contains the complete build environment. With the ESP8266 connected to /dev/ttyUSB0:
+```
+git clone https://github.com/martin-ger/esp_slip_router.git
+docker run -it --rm --device=/dev/ttyUSB0 -v $(pwd)/esp_slip_router:/home/esp/esp_slip_router martinfger/iot_devel:1.0
+cd esp_slip_router
+make
+make flash
+```
+If your serial adapter has a different name (e.g. /dev/ttyACM0), adjust the --device option. To build only, omit --device; the binaries end up in the firmware/ directory on the host.
+
 # Softuart UART
 As UART0, the HW UART of the esp8266 is busy with the SLIP protocoll, it cannot be used simultaniuosly as debugging output. This is highly uncomfortable especially during development. If you define DEBUG_SOFTUART in user_config.h, a second UART will be simulated in software (Rx GPIO 14, Tx GPIO 12, 19200 baud). All debug output (os_printf) will then be redirectd to this port.
 
