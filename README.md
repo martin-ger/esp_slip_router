@@ -85,7 +85,17 @@ CMD>save
 CMD>reset
 ```
 
-Now STAs of this AP get IP adresses in the 192.168.4.0/24 network and can reach the Linux machine as "192.168.240.2". The AP interface is NATed, i.e. you cannot set up connections from the Linux machine to the STAs, but from STAs to Linux works. Useful e.g. if you want to reach an MQTT server on the Linux.
+Now STAs of this AP get IP adresses in the 192.168.4.0/24 network and can reach the Linux machine as "192.168.240.2". The SLIP interface is the default route of the ESP, i.e. all traffic from the STAs that is not addressed to the 192.168.4.0/24 network is forwarded to the Linux machine (no NAT on the ESP). With the route above the Linux machine can also reach the STAs directly. Useful e.g. if you want to reach an MQTT server on the Linux.
+
+## Internet access for the AP clients
+If the Linux machine has internet access (e.g. via eth0), it can act as gateway for the STAs of the AP. Enable forwarding and NAT on the Linux side:
+```
+sudo sysctl -w net.ipv4.ip_forward=1
+sudo iptables -t nat -A POSTROUTING -s 192.168.4.0/24 -o eth0 -j MASQUERADE
+sudo iptables -A FORWARD -i sl0 -o eth0 -j ACCEPT
+sudo iptables -A FORWARD -i eth0 -o sl0 -m state --state RELATED,ESTABLISHED -j ACCEPT
+```
+Replace eth0 by your external interface. The DNS server handed out to the STAs defaults to 192.168.240.2, so either run a DNS resolver (e.g. dnsmasq) on the Linux machine or use "set dns 8.8.8.8". Use the FORWARD rules to restrict which destinations the STAs may access.
 
 The console understands the following command for the AP mode:
 - set use_ap [0|1]: selects, whether the esp_slip_router uses an STA interface (use_ap = 0, default) or an AP interface (use_ap = 1)
