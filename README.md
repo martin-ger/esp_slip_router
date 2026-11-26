@@ -1,3 +1,265 @@
+# ESP8266 Reverse SLIP Router
+
+An ESP8266-based USB-to-Wi-Fi router with corrected IPv4 routing
+and automated Linux gateway configuration using systemd.
+
+Based on the original ESP SLIP Router by Martin Ger.
+
+## Overview
+
+This fork addresses an AP-mode routing issue encountered when
+sharing an Ethernet internet connection from a Linux host
+with wireless clients through a serial SLIP connection.
+
+## Key improvements
+
+- Corrected default network interface selection after SDK initialization.
+- Extended network interface diagnostics.
+- Explicit UART configuration during Linux startup.
+- Automated SLIP interface configuration.
+- IPv4 forwarding and NAT configuration on Linux.
+- Configurable serial device, baud rate and WAN interface.
+- Automatic startup using systemd.
+- Interactive Linux installation script.
+
+## System architecture
+
+![System Architecture](docs/architecture.svg)
+
+
+```mermaid
+flowchart TD
+    A[Internet] <-->|Ethernet| B[Windows Host]
+    B <--> C[VirtualBox / Ubuntu]
+    C <-->|USB / CH340 / SLIP| D[ESP8266]
+    D <-->|Wi-Fi| E[Android Client]
+```
+
+## Hardware
+
+- ESP8266MOD ESP-12F
+- ESP8266EX microcontroller
+- 4 MB flash memory
+- CH340 USB-to-serial converter
+- Linux computer or virtual machine
+- Wi-Fi client device
+
+## Network configuration
+
+| Interface | Address |
+|---|---|
+| Linux SLIP interface | 192.168.240.2 |
+| ESP8266 SLIP interface | 192.168.240.1 |
+| ESP8266 SoftAP | 192.168.4.1 |
+| Wireless network | 192.168.4.0/24 |
+| DNS server used in testing | 1.1.1.1 |
+| UART speed | 115200 baud |
+| MTU | 1500 bytes |
+
+NAT is performed on the Linux host rather than on the ESP8266
+in the tested reverse-routing configuration.
+
+## Linux installation
+
+Install the required packages on Debian or Ubuntu:
+
+```bash
+sudo apt install net-tools iproute2 iptables
+```
+
+Flash the ESP8266 firmware, connect the serial adapter and make
+sure no other process is using the serial port.
+
+Run the interactive installer:
+
+```bash
+sudo bash linux/install.sh
+```
+
+The installer asks for the serial device, WAN interface and baud rate.
+
+It installs the router script and systemd service and enables
+automatic startup.
+
+Review the configuration before starting the service.
+The installer requires root privileges and modifies network
+forwarding and firewall settings.
+
+## ESP8266 configuration
+
+With the SLIP connection established, connect to the firmware console:
+
+```bash
+nc 192.168.240.1 7777
+```
+
+Configure AP mode using the following console commands:
+
+```text
+set ap_ssid YOUR_SSID
+set ap_password YOUR_PASSWORD
+set ap_open 0
+set use_ap 1
+set dns 1.1.1.1
+save
+reset
+```
+
+Use a strong Wi-Fi password. The TCP configuration console
+should only be exposed to trusted networks.
+
+## Service management
+
+Check the router status:
+
+```bash
+sudo systemctl status esp-slip-router
+```
+
+Start the router:
+
+```bash
+sudo systemctl start esp-slip-router
+```
+
+Stop the router:
+
+```bash
+sudo systemctl stop esp-slip-router
+```
+
+Restart the router:
+
+```bash
+sudo systemctl restart esp-slip-router
+```
+
+Monitor service logs:
+
+```bash
+sudo journalctl -u esp-slip-router -f
+```
+
+## Firmware routing fix
+
+In AP mode, the SDK was overriding the default network interface
+during initialization in the tested environment.
+
+The following callback was added to user/user_main.c:
+
+```c
+static void ICACHE_FLASH_ATTR router_init_done(void)
+{
+    if (config.use_ap) {
+        netif_set_default(&sl_netif);
+    }
+}
+```
+
+The callback is registered at the end of user_init():
+
+```c
+system_init_done_cb(router_init_done);
+```
+
+This ensures that the SLIP interface becomes the default
+network interface after SDK initialization.
+
+## Experimental results
+
+The prototype was tested in November 2026 using an ESP-12F,
+a CH340 serial adapter, Ubuntu running in VirtualBox,
+Windows 10 Pro and an Android smartphone.
+
+| Parameter | Result |
+|---|---|
+| ICMP packets transmitted | 10 |
+| ICMP packets received | 10 |
+| Packet loss | 0% |
+| Minimum RTT | 18.225 ms |
+| Average RTT | 20.174 ms |
+| Maximum RTT | 29.745 ms |
+| RTT standard deviation | 3.785 ms |
+| Internet access | Successful |
+| DNS resolution | Successful |
+| HTTPS navigation | Successful |
+| Automatic startup after reboot | Successful |
+
+These results refer to the working prototype.
+
+The cleaned firmware has been successfully compiled.
+The generalized Linux scripts have passed syntax checks.
+Hardware validation of the cleaned firmware and functional
+testing of the new installer remain pending.
+
+## Troubleshooting
+
+If the service is running but the ESP8266 is unreachable,
+check the serial configuration:
+
+```bash
+sudo stty -F /dev/ttyUSB0 -a
+```
+
+Replace the device path if necessary.
+
+During testing, the serial port reported 0 baud after reboot,
+and invalid IP packets were observed using tcpdump.
+
+Explicit UART configuration with stty before starting
+slattach resolved the observed startup problem.
+
+Verify the SLIP connection:
+
+```bash
+ping -c 10 192.168.240.1
+```
+
+## Limitations
+
+- UART bandwidth is the main performance bottleneck.
+- At 115200 baud with 8N1 framing, the theoretical maximum
+  is 92.16 kbps or 11.52 kB/s before protocol overhead.
+- Actual internet throughput has not yet been measured.
+- Long-term stability and multiple-client testing remain pending.
+- Physical USB reconnection has not yet been validated.
+- The Linux host must remain operational.
+- VirtualBox users must ensure USB passthrough is enabled.
+- The Linux scripts assume the default SLIP and SoftAP subnets.
+- Existing firewall rules may require additional configuration.
+
+## Credits
+
+**Original project:** Martin Ger
+
+https://github.com/martin-ger/esp_slip_router
+
+**Reverse-routing corrections, Linux automation and
+experimental validation:** Eliton Machado
+
+Tomsk Polytechnic University (TPU)
+
+November 2026
+
+## References
+
+- https://www.rfc-editor.org/rfc/rfc1055
+- https://github.com/martin-ger/esp_slip_router
+- https://github.com/martin-ger/esp-open-lwip
+- https://github.com/pfalcon/esp-open-sdk
+- https://github.com/martin-ger/esp_slip_router/issues/15
+
+---
+
+# Original upstream documentation
+
+The following section preserves the original project documentation
+for reference. Its original NAT behavior and speed estimates
+should not be confused with the reverse-routing configuration
+and corrected bandwidth calculation described above.
+
+---
+
 # esp_slip_router
 A SLIP to WiFi router
 
