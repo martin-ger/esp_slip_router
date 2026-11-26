@@ -1,0 +1,4 @@
+
+# Local build artifacts and backups
+/build/
+*.backup

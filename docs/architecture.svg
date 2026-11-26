@@ -1,0 +1,83 @@
+<svg xmlns="http://www.w3.org/2000/svg"
+     width="1000" height="850" viewBox="0 0 1000 850">
+
+  <defs>
+    <marker id="arrow" markerWidth="10" markerHeight="10"
+            refX="5" refY="3" orient="auto-start-reverse">
+      <path d="M0,0 L0,6 L6,3 z" fill="#38bdf8"/>
+    </marker>
+  </defs>
+
+  <rect width="1000" height="850" rx="20" fill="#0f172a"/>
+
+  <g font-family="Arial, sans-serif" text-anchor="middle">
+    <text x="500" y="45" fill="#ffffff" font-size="26"
+          font-weight="bold">ESP8266 Reverse SLIP Router</text>
+    <text x="500" y="72" fill="#94a3b8" font-size="16">
+      USB-to-Wi-Fi Internet Sharing Architecture
+    </text>
+
+    <rect x="300" y="100" width="400" height="70"
+          rx="12" fill="#1e293b" stroke="#38bdf8"/>
+    <text x="500" y="142" fill="#ffffff"
+          font-size="22">Internet</text>
+
+    <rect x="250" y="210" width="500" height="85"
+          rx="12" fill="#1e293b" stroke="#64748b"/>
+    <text x="500" y="240" fill="#ffffff"
+          font-size="22">Windows 10 Pro</text>
+    <text x="500" y="270" fill="#94a3b8"
+          font-size="16">Ethernet / VirtualBox NAT</text>
+
+    <rect x="250" y="335" width="500" height="125"
+          rx="12" fill="#172554" stroke="#60a5fa"/>
+    <text x="500" y="365" fill="#ffffff"
+          font-size="22">Ubuntu Linux Gateway</text>
+    <text x="500" y="392" fill="#bfdbfe"
+          font-size="16">WAN: 10.0.2.15</text>
+    <text x="500" y="418" fill="#bfdbfe"
+          font-size="16">SLIP: 192.168.240.2</text>
+    <text x="500" y="444" fill="#93c5fd"
+          font-size="16">IPv4 Forwarding / NAT / systemd</text>
+
+    <rect x="300" y="500" width="400" height="70"
+          rx="12" fill="#1e293b" stroke="#38bdf8"/>
+    <text x="500" y="528" fill="#ffffff"
+          font-size="20">CH340 USB Serial</text>
+    <text x="500" y="551" fill="#94a3b8"
+          font-size="15">SLIP / 115200 baud / MTU 1500</text>
+
+    <rect x="250" y="610" width="500" height="110"
+          rx="12" fill="#134e4a" stroke="#2dd4bf"/>
+    <text x="500" y="640" fill="#ffffff"
+          font-size="22">ESP8266MOD ESP-12F</text>
+    <text x="500" y="668" fill="#ccfbf1"
+          font-size="16">SLIP: 192.168.240.1</text>
+    <text x="500" y="694" fill="#ccfbf1"
+          font-size="16">SoftAP: 192.168.4.1</text>
+
+    <rect x="300" y="760" width="400" height="65"
+          rx="12" fill="#14532d" stroke="#4ade80"/>
+    <text x="500" y="786" fill="#ffffff"
+          font-size="20">Android Wi-Fi Client</text>
+    <text x="500" y="810" fill="#bbf7d0"
+          font-size="15">192.168.4.2</text>
+
+    <g stroke="#38bdf8" stroke-width="2"
+       marker-start="url(#arrow)" marker-end="url(#arrow)">
+      <line x1="500" y1="178" x2="500" y2="202"/>
+      <line x1="500" y1="303" x2="500" y2="327"/>
+      <line x1="500" y1="468" x2="500" y2="492"/>
+      <line x1="500" y1="578" x2="500" y2="602"/>
+      <line x1="500" y1="728" x2="500" y2="752"/>
+    </g>
+
+    <g fill="#94a3b8" font-size="14" text-anchor="start">
+      <text x="525" y="195">Ethernet</text>
+      <text x="525" y="320">Virtual network</text>
+      <text x="525" y="485">USB passthrough</text>
+      <text x="525" y="595">UART / SLIP</text>
+      <text x="525" y="745">Wi-Fi 2.4 GHz</text>
+    </g>
+  </g>
+</svg>

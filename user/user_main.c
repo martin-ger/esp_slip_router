@@ -292,6 +292,7 @@ void ICACHE_FLASH_ATTR console_handle_command(struct espconn *pespconn)
 
 	   os_sprintf(response, "Free mem: %d\r\n", system_get_free_heap_size());
 	   ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response));
+       { struct netif *nf; for (nf = netif_list; nf != NULL; nf = nf->next) { os_sprintf(response, "IF %c%c%d IP: %d.%d.%d.%d GW: %d.%d.%d.%d DEFAULT: %d NAT: %d\r\n", nf->name[0], nf->name[1], nf->num, IP2STR(&nf->ip_addr), IP2STR(&nf->gw), nf == netif_default, nf->napt); ringbuf_memcpy_into(console_tx_buffer, response, os_strlen(response)); } }
 
 	   if (config.use_ap) {
 	     os_sprintf(response, "%d Station%s connected to SoftAP\r\n", wifi_softap_get_station_num(),
@@ -852,6 +853,13 @@ struct netif *nif;
 }
 //-------------------------------------------------------------------------------------------------
 //Init function
+static void ICACHE_FLASH_ATTR router_init_done(void)
+{
+    if (config.use_ap) {
+        netif_set_default(&sl_netif);
+    }
+}
+
 void ICACHE_FLASH_ATTR  user_init()
 {
 #ifdef ENABLE_HAYES
@@ -939,6 +947,7 @@ void ICACHE_FLASH_ATTR  user_init()
 	IP4_ADDR(&netmask, 255, 255, 255, 0);
 	netif_add (&sl_netif, &config.ip_addr, &netmask, &config.ip_addr_peer, &int_no, slipif_init, ip_input);
 	netif_set_up(&sl_netif);
+        netif_set_default(&sl_netif);
 
 	// enable NAT on the AP interface
 	//IP4_ADDR(&my_ip, 192, 168, 4, 1);
@@ -981,4 +990,5 @@ void ICACHE_FLASH_ATTR  user_init()
 
     //Start our user task
     system_os_task(user_procTask, user_procTaskPrio,user_procTaskQueue, user_procTaskQueueLen);
+    system_init_done_cb(router_init_done);
 }
