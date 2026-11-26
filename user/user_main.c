@@ -714,6 +714,22 @@ static void ICACHE_FLASH_ATTR user_procTask(os_event_t *events)
     }
 }
 
+/* In AP mode all traffic not addressed to the SoftAP net must leave via SLIP.
+   The SDK makes the SoftAP netif the default interface while it brings up
+   WiFi (after user_init()), so (re-)assert the SLIP netif as default. */
+static void ICACHE_FLASH_ATTR set_slip_default_route(void)
+{
+    if (config.use_ap && netif_default != &sl_netif) {
+	netif_set_default(&sl_netif);
+	os_printf("SLIP netif set as default route\n");
+    }
+}
+
+static void ICACHE_FLASH_ATTR system_init_done(void)
+{
+    set_slip_default_route();
+}
+
 /* Callback called when the connection state of the module with an Access Point changes */
 void ICACHE_FLASH_ATTR wifi_handle_event_cb(System_Event_t *evt)
 {
@@ -735,6 +751,10 @@ int i;
         // Turn LED on when waiting
         GPIO_OUTPUT_SET (STATUS_LED, 0);
 #endif
+        break;
+
+    case EVENT_SOFTAPMODE_STACONNECTED:
+	set_slip_default_route();
         break;
 
     case EVENT_STAMODE_AUTHMODE_CHANGE:
@@ -922,6 +942,7 @@ void ICACHE_FLASH_ATTR  user_init()
 #endif
 
 	    dhcps_set_DNS(&config.ap_dns);
+	    wifi_set_event_handler_cb(wifi_handle_event_cb);
     } else {
         // Start the STA-Mode
         wifi_set_opmode(STATION_MODE);
@@ -940,9 +961,8 @@ void ICACHE_FLASH_ATTR  user_init()
 	netif_add (&sl_netif, &config.ip_addr, &netmask, &config.ip_addr_peer, &int_no, slipif_init, ip_input);
 	netif_set_up(&sl_netif);
 
-	// enable NAT on the AP interface
-	//IP4_ADDR(&my_ip, 192, 168, 4, 1);
-	//ip_napt_enable(my_ip.addr, 1);
+	// route everything not local to the SoftAP net via the SLIP peer
+	netif_set_default(&sl_netif);
 
     } else {
 	IP4_ADDR(&netmask, 255, 255, 255, 0);
@@ -978,6 +998,9 @@ void ICACHE_FLASH_ATTR  user_init()
 #ifdef ENABLE_HAYES
     h_result(OKAY);
 #endif
+
+    // The SDK may change the default netif during WiFi startup
+    system_init_done_cb(system_init_done);
 
     //Start our user task
     system_os_task(user_procTask, user_procTaskPrio,user_procTaskQueue, user_procTaskQueueLen);
